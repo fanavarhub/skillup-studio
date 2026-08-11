@@ -1,0 +1,114 @@
+export type ProjectCategory = 'AI' | 'Game' | 'Communication';
+export type ProjectStatus = 'approved' | 'pending' | 'revision_required' | 'rejected';
+export type ConsultationStatus = 'pending' | 'contacted' | 'canceled';
+
+export interface Course {
+  id: string;
+  title: string;
+  description: string;
+  level: string;
+  price: string;
+  duration: string;
+  coverImage: string;
+  offlineVideos: { id: string; title: string; duration: string; url: string; week?: string }[];
+  onlineMeetingLink: string;
+  instructor?: string;
+  capacity?: number;
+  enrolled?: number;
+  nextSessionAt?: string;
+  scheduleText?: string;
+  isActive?: boolean;
+}
+
+export interface StudentProject {
+  id: string;
+  title: string;
+  description: string;
+  category: ProjectCategory;
+  embedUrl: string;
+  offlineEmbedUrl?: string;
+  scratchId?: string;
+  studentName: string;
+  studentAge: number;
+  coverImage: string;
+  status: ProjectStatus;
+  createdAt: string;
+  likes: number;
+  featured?: boolean;
+  profileBio?: string;
+  profileAvatar?: string;
+  assignmentId?: string;
+  submissionVersion?: number;
+  adminNotes?: string;
+  rubric?: Array<{ title: string; score: number; maxScore: number }>;
+  scoreAwarded?: number;
+  userId?: string;
+}
+
+export interface ConsultationRequest {
+  id: string;
+  phone: string;
+  childName?: string;
+  ip: string;
+  device: string;
+  browser: string;
+  createdAt: string;
+  status: ConsultationStatus;
+  notes?: string;
+}
+
+export interface Certificate {
+  id: string;
+  studentName: string;
+  courseId: string;
+  courseTitle: string;
+  issuedAt: string;
+  verificationCode: string;
+}
+
+export interface StudentProfile {
+  studentName: string;
+  xp: number;
+  level: number;
+  completedVideos?: string[];
+  completedQuizzes?: string[];
+  unlockedRewards?: string[];
+  purchasedCourses?: string[];
+  levelXp?: number;
+  nextLevelXp?: number;
+  progress?: number;
+  tier?: 'Starter' | 'Skiller' | 'Skill Master';
+  xpLedger?: Array<{ delta: number; eventType: string; reason?: string; createdAt: string }>;
+}
+
+export type PaymentStatus = 'pending' | 'approved' | 'rejected';
+
+export interface PaymentRequest {
+  id: string;
+  studentName: string;
+  phone: string;
+  courseId: string;
+  courseTitle: string;
+  amount: string;
+  receiptNumber: string;
+  cardLastFour?: string;
+  payerName?: string;
+  notes?: string;
+  status: PaymentStatus;
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiError {
+  error: string;
+}
+
+export type UserRole = 'guest' | 'student' | 'admin';
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  phone: string;
+  role: UserRole;
+}

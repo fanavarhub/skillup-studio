@@ -1,0 +1,6 @@
+{
+  "name": "Skill Up",
+  "description": "پلتفرم آموزشی و مهارتی پروژه‌محور کودکان و نوجوانان اسکیل آپ برای سنین ۸ الی ۱۷ سال",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

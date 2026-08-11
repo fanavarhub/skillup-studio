@@ -1,0 +1,24 @@
+services:
+  skillup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skillup-studio
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4050
+      SKILLUP_ADMIN_PASSWORD: ${SKILLUP_ADMIN_PASSWORD:?Set SKILLUP_ADMIN_PASSWORD in .env before starting}
+      SKILLUP_SESSION_SECRET: ${SKILLUP_SESSION_SECRET:?Set a random 32+ character SKILLUP_SESSION_SECRET in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://skill-up.ir}
+      APP_URL: ${APP_URL:-https://skill-up.ir}
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:4050:4050"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:4050/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
