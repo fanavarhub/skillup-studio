@@ -23,7 +23,7 @@ export default function TrialAssessment({ goToCourses }: { goToCourses: () => vo
     setResult(data);
   };
 
-  return <section className="py-16 bg-indigo-950 text-white" dir="rtl">
+  return <section data-tour="home-assessment" className="relative overflow-hidden py-16 bg-gradient-to-l from-indigo-950 via-violet-900 to-fuchsia-900 text-white" dir="rtl">
     <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
       <div className="pt-5"><span className="inline-flex gap-2 items-center px-3 py-1 rounded-full bg-white/10 text-xs font-bold"><Sparkles className="w-4 h-4 text-amber-300"/>جلسه آزمایشی رایگان</span><h2 className="text-3xl sm:text-4xl font-black mt-5 leading-tight">در کمتر از دو دقیقه، مسیر مناسب یادگیری را پیدا کن</h2><p className="text-indigo-200 text-sm leading-7 mt-4">این آزمون کوتاه بر اساس علاقه و تجربه، یک دوره مناسب پیشنهاد می‌دهد. اگر نام و موبایل را وارد کنی، درخواست جلسه آزمایشی هم ثبت می‌شود.</p>
         <div className="mt-6 rounded-3xl bg-white/5 border border-white/10 p-5 flex gap-3"><CalendarCheck className="w-6 h-6 text-emerald-300 shrink-0"/><div><b>بدون پرداخت</b><p className="text-xs text-indigo-200 mt-1">جلسه برای آشنایی هنرجو با مربی و فضای دوره است.</p></div></div>

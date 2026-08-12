@@ -15,7 +15,7 @@ export default function Testimonials() {
     try { const result = await api<{ message: string }>('/api/site-messages', { method: 'POST', body: JSON.stringify({ name, body, rating }) }); setNotice(result.message); setName(''); setBody(''); }
     catch (reason) { setNotice(reason instanceof Error ? reason.message : 'ثبت نظر انجام نشد.'); }
   };
-  return <section className="bg-slate-50 py-16" dir="rtl">
+  return <section data-tour="home-testimonials" className="relative overflow-hidden bg-gradient-to-b from-amber-50/70 to-rose-50/50 py-16" dir="rtl">
     <div className="mx-auto max-w-7xl px-4 sm:px-6">
       <div className="mb-8 text-center"><span className="inline-flex items-center gap-2 rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700"><MessageCircle className="h-4 w-4" /> تجربه هنرجوها</span><h2 className="mt-3 text-3xl font-black text-slate-950">از زبان خانواده اسکیل‌آپ</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-slate-500">فقط نظرهایی که مدیریت بررسی و تأیید کرده، در این بخش نمایش داده می‌شوند.</p></div>
       {items.length > 0 && <div className="mb-8 grid gap-4 md:grid-cols-3">{items.slice(0, 6).map((item) => <article key={item.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex gap-0.5 text-amber-400">{Array.from({ length: item.rating }, (_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}</div><p className="my-4 text-sm leading-7 text-slate-700">«{item.body}»</p><p className="font-extrabold text-slate-950">{item.name}</p>{item.adminReply && <p className="mt-3 rounded-xl bg-indigo-50 p-3 text-xs leading-6 text-indigo-700"><strong>پاسخ اسکیل‌آپ:</strong> {item.adminReply}</p>}</article>)}</div>}

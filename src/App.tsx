@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ProjectShowcase from './components/ProjectShowcase';
@@ -10,6 +10,7 @@ import Footer from './components/Footer';
 import TrialAssessment from './components/TrialAssessment';
 import CertificateVerify from './components/CertificateVerify';
 import Testimonials from './components/Testimonials';
+import GuidedTour from './components/GuidedTour';
 import { AuthUser, UserRole } from './types';
 
 const authUserKey = 'skillup_auth_user';
@@ -27,6 +28,13 @@ export default function App() {
   });
   
   const [unlockedCourses, setUnlockedCourses] = useState<string[]>([]);
+  const homeTour = useMemo(() => [
+    { target: '[data-tour="home-hero"]', title: 'به اسکیل‌آپ خوش آمدی!', description: 'اینجا نقطه شروع مسیر مهارتی توست؛ می‌توانی برای انتخاب مسیر مناسب، درخواست مشاوره رایگان ثبت کنی.', emoji: '🚀' },
+    { target: '[data-tour="home-courses"]', title: 'مسیر مهارتی‌ات را انتخاب کن', description: 'دوره‌ها را بر اساس علاقه و سطح ببین. با بازکردن هر کارت، جزئیات و روش ثبت پرداخت نمایش داده می‌شود.', emoji: '🎓' },
+    { target: '[data-tour="home-assessment"]', title: 'نمی‌دانی از کجا شروع کنی؟', description: 'آزمون کوتاه تعیین مسیر، علاقه و تجربه‌ات را می‌سنجد و یک دوره مناسب پیشنهاد می‌دهد.', emoji: '🧭' },
+    { target: '[data-tour="home-projects"]', title: 'خروجی واقعی هنرجوها', description: 'در گالری پروژه‌ها می‌بینی هنرجوها چه بازی، پروژه هوش مصنوعی و ارائه‌ای ساخته‌اند.', emoji: '🏆' },
+    { target: '[data-tour="home-testimonials"]', title: 'تجربه خانواده اسکیل‌آپ', description: 'نظرهای تأییدشده را بخوان یا تجربه خودت را برای بررسی مدیریت ارسال کن.', emoji: '💬' },
+  ], []);
 
   const handleUnlockCourse = (courseId: string) => {
     if (!unlockedCourses.includes(courseId)) {
@@ -77,6 +85,8 @@ export default function App() {
             <ProjectShowcase />
 
             <Testimonials />
+
+            <GuidedTour steps={homeTour} storageKey="skillup-tour-home-v1" launcherLabel="راهنمای سایت" />
 
             {/* 6. Footer is appended automatically */}
           </div>

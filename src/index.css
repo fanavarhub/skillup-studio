@@ -44,6 +44,32 @@ button, a, input, textarea, select {
   box-shadow: 0 0 0 3px rgb(199 210 254 / 0.65);
 }
 
+.playful-card {
+  transform: translateZ(0);
+}
+
+.playful-card:hover {
+  filter: saturate(1.05);
+}
+
+.tour-launcher {
+  animation: tour-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes tour-breathe {
+  0%, 100% { box-shadow: 0 10px 30px rgb(124 58 237 / 0.28); }
+  50% { box-shadow: 0 12px 38px rgb(124 58 237 / 0.48); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @media (max-width: 767px) {
   html {
     scroll-padding-top: 72px;

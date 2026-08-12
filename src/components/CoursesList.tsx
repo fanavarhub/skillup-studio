@@ -14,6 +14,10 @@ interface CoursesListProps {
 const defaultStudentName = 'نوجوان خلاق اسکیل آپ';
 const bankCardNumber = '6037-9975-1234-5678';
 const bankAccountOwner = 'Skill Up Academy';
+const courseAccents = [
+  'border-violet-200 shadow-violet-100/70', 'border-sky-200 shadow-sky-100/70', 'border-amber-200 shadow-amber-100/70',
+  'border-emerald-200 shadow-emerald-100/70', 'border-rose-200 shadow-rose-100/70', 'border-fuchsia-200 shadow-fuchsia-100/70',
+];
 
 export default function CoursesList({ onUnlockCourse, unlockedCourses, setCurrentTab, studentName: loggedInStudentName }: CoursesListProps) {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -134,7 +138,9 @@ export default function CoursesList({ onUnlockCourse, unlockedCourses, setCurren
   };
 
   return (
-    <section className="py-20 bg-gray-50/60" dir="rtl">
+    <section data-tour="home-courses" className="relative overflow-hidden py-20 bg-gradient-to-b from-violet-50/70 via-white to-sky-50/60" dir="rtl">
+      <div className="pointer-events-none absolute -right-16 top-20 h-48 w-48 rounded-full bg-amber-200/30 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 bottom-20 h-56 w-56 rounded-full bg-fuchsia-200/30 blur-3xl" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
           <span className="text-indigo-600 font-sans font-bold text-xs sm:text-sm uppercase block">🎓 فروشگاه دوره‌های اسکیل آپ</span>
@@ -151,15 +157,16 @@ export default function CoursesList({ onUnlockCourse, unlockedCourses, setCurren
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course) => {
+            {courses.map((course, courseIndex) => {
               const isUnlocked = isCourseUnlocked(course.id);
               const badge = paymentBadge(course.id);
               const remaining = Math.max((course.capacity || 0) - (course.enrolled || 0), 0);
               return (
                 <div
                   key={course.id}
-                  className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full text-right group"
+                  className={`playful-card relative bg-white rounded-[30px] border-2 ${courseAccents[courseIndex % courseAccents.length]} overflow-hidden shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col justify-between h-full text-right group`}
                 >
+                  <div className={`absolute inset-x-0 top-0 z-10 h-1.5 ${['bg-violet-500','bg-sky-500','bg-amber-400','bg-emerald-500','bg-rose-500','bg-fuchsia-500'][courseIndex % 6]}`} />
                   <div className="relative h-48 bg-slate-900 shrink-0">
                     <img src={course.coverImage} alt={course.title} referrerPolicy="no-referrer" className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500" />
                     <div className="absolute top-4 right-4 px-3 py-1 bg-white/95 backdrop-blur-md rounded-xl text-xs font-sans font-bold text-indigo-600 shadow-md">
@@ -205,8 +212,8 @@ export default function CoursesList({ onUnlockCourse, unlockedCourses, setCurren
 
                       <button
                         onClick={() => openCourse(course)}
-                        className={`px-4.5 py-2.5 font-sans font-bold text-xs rounded-xl transition-all cursor-pointer ${
-                          isUnlocked ? 'bg-emerald-50 text-emerald-700 ring-2 ring-emerald-100' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+                        className={`px-4.5 py-2.5 font-sans font-bold text-xs rounded-2xl transition-all cursor-pointer ${
+                          isUnlocked ? 'bg-emerald-50 text-emerald-700 ring-2 ring-emerald-100' : 'bg-gradient-to-l from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-violet-200'
                         }`}
                       >
                         {isUnlocked ? 'فعال در پنل' : 'مشاهده و ارسال فیش'}

@@ -116,7 +116,7 @@ export default function ProjectShowcase() {
   };
 
   return (
-    <section className="py-20 bg-white" dir="rtl">
+    <section data-tour="home-projects" className="relative overflow-hidden py-20 bg-white" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
           <div className="text-right space-y-2">

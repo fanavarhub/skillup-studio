@@ -53,7 +53,7 @@ export default function Hero() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
           {/* Right: Content & Form */}
-          <div className="lg:col-span-7 text-right space-y-8">
+          <div data-tour="home-hero" className="lg:col-span-7 text-right space-y-8">
             {/* Tagline */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100/80 text-indigo-700 font-sans text-xs sm:text-sm font-semibold">
               <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />

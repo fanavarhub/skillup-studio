@@ -99,18 +99,18 @@ export default function StudentLearning({ courses, onXp }: { courses: Course[]; 
         <p className="mt-1 text-sm text-slate-500">جلسه را باز کن؛ ذخیره پیشرفت و امتیازدهی کاملاً خودکار است.</p>
       </div>
       {courses.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <LockKeyhole className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+        <div className="rounded-[30px] border-2 border-dashed border-violet-200 bg-gradient-to-br from-white to-violet-50 p-10 text-center shadow-sm">
+          <span className="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-3xl bg-violet-100"><LockKeyhole className="h-9 w-9 text-violet-400" /></span>
           <p className="font-bold text-slate-700">هنوز دوره‌ای برای حساب شما فعال نشده است.</p>
           <p className="mt-2 text-sm text-slate-500">پس از تأیید پرداخت، دوره همین‌جا ظاهر می‌شود.</p>
         </div>
       ) : <div className="grid gap-4 md:grid-cols-2">{courses.map((course) => (
-        <button key={course.id} onClick={() => loadSessions(course)} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white text-right shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+        <button key={course.id} onClick={() => loadSessions(course)} className="playful-card group overflow-hidden rounded-[30px] border-2 border-violet-100 bg-white text-right shadow-lg shadow-violet-100/60 transition hover:-translate-y-2 hover:border-violet-300 hover:shadow-xl">
           <img src={course.coverImage} alt="" className="h-40 w-full object-cover" />
           <div className="p-5">
             <p className="text-xs font-bold text-indigo-600">{course.level}</p>
             <h3 className="mt-1 text-lg font-extrabold text-slate-950">{course.title}</h3>
-            <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-indigo-700"><PlayCircle className="h-5 w-5" /> ورود به کلاس</span>
+            <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700"><PlayCircle className="h-5 w-5" /> بزن بریم کلاس!</span>
           </div>
         </button>
       ))}</div>}
@@ -128,17 +128,17 @@ export default function StudentLearning({ courses, onXp }: { courses: Course[]; 
     <section className="space-y-5">
       <button onClick={() => { setSelectedCourse(null); setSessions([]); }} className="text-sm font-bold text-indigo-700">→ بازگشت به کلاس‌های من</button>
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
-        <aside className="h-fit rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+        <aside className="h-fit rounded-[30px] border-2 border-violet-100 bg-white p-3 shadow-lg shadow-violet-100/50">
           <div className="px-3 py-3"><p className="text-xs text-slate-500">دوره</p><h2 className="font-extrabold text-slate-950">{selectedCourse.title}</h2></div>
           {loading && <p className="p-4 text-sm text-slate-400">در حال بارگذاری…</p>}
           {!loading && sessions.map((lesson, index) => (
-            <button key={lesson.id} onClick={() => setActiveId(lesson.id)} className={`mb-2 flex w-full items-center gap-3 rounded-2xl p-3 text-right transition ${activeId === lesson.id ? 'bg-indigo-600 text-white' : 'hover:bg-slate-50'}`}>
+            <button key={lesson.id} onClick={() => setActiveId(lesson.id)} className={`mb-2 flex w-full items-center gap-3 rounded-2xl p-3 text-right transition ${activeId === lesson.id ? 'bg-gradient-to-l from-indigo-600 to-violet-600 text-white shadow-lg shadow-violet-200' : 'hover:bg-violet-50'}`}>
               <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl text-xs font-black ${lesson.progress?.completed ? 'bg-emerald-100 text-emerald-700' : activeId === lesson.id ? 'bg-white/15' : 'bg-slate-100 text-slate-500'}`}>{lesson.progress?.completed ? <CheckCircle2 className="h-5 w-5" /> : index + 1}</span>
               <span className="min-w-0"><span className="block truncate text-sm font-bold">{lesson.title}</span><span className={`text-[11px] ${activeId === lesson.id ? 'text-indigo-100' : 'text-slate-400'}`}>{lesson.xpReward} امتیاز · {lesson.progress?.watchedPercent || 0}٪</span></span>
             </button>
           ))}
         </aside>
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
+        <div className="rounded-[30px] border-2 border-sky-100 bg-gradient-to-br from-white to-sky-50/40 p-5 shadow-lg shadow-sky-100/50 md:p-7">
           {error && <div className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
           {!active && !loading && <div className="py-16 text-center text-slate-400"><BookOpen className="mx-auto mb-3 h-10 w-10" />برای این دوره هنوز جلسه‌ای منتشر نشده است.</div>}
           {active && <div className="space-y-6">
