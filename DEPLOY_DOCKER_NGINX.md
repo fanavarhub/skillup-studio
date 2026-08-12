@@ -27,6 +27,7 @@ nano .env
 ```env
 APP_URL="https://skill-up.ir"
 PUBLIC_BASE_URL="https://skill-up.ir"
+SKILLUP_ADMIN_USERNAME="admin"
 SKILLUP_ADMIN_PASSWORD="یک رمز طولانی و یکتا"
 SKILLUP_SESSION_SECRET="یک مقدار تصادفی حداقل ۳۲ کاراکتر"
 ```

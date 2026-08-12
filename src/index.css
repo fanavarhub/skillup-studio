@@ -27,6 +27,12 @@ button, a, input, textarea, select {
   -webkit-tap-highlight-color: transparent;
 }
 
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 2px;
+}
+
 .input-admin {
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
@@ -59,6 +65,33 @@ button, a, input, textarea, select {
 @keyframes tour-breathe {
   0%, 100% { box-shadow: 0 10px 30px rgb(124 58 237 / 0.28); }
   50% { box-shadow: 0 12px 38px rgb(124 58 237 / 0.48); }
+}
+
+.avatar-bounce {
+  animation: avatar-bounce 3.2s ease-in-out infinite;
+}
+
+.float-spark {
+  animation: float-spark 3.8s ease-in-out infinite alternate;
+}
+
+.panel-orb {
+  animation: panel-orb 8s ease-in-out infinite alternate;
+}
+
+@keyframes avatar-bounce {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
+}
+
+@keyframes float-spark {
+  from { transform: translate3d(0, 0, 0) rotate(0); }
+  to { transform: translate3d(12px, -9px, 0) rotate(18deg); }
+}
+
+@keyframes panel-orb {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(24px, 14px, 0) scale(1.12); }
 }
 
 @media (prefers-reduced-motion: reduce) {

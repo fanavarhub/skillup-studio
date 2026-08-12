@@ -11,6 +11,7 @@ type Tab = 'learning' | 'courses' | 'projects' | 'messages' | 'requests';
 
 export default function AdminPanel() {
   const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || '');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [tab, setTab] = useState<Tab>('learning');
   const [courses, setCourses] = useState<Course[]>([]);
@@ -40,7 +41,7 @@ export default function AdminPanel() {
 
   const login = async (event: FormEvent) => {
     event.preventDefault(); setError('');
-    try { const response = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); localStorage.setItem(tokenKey, data.token); setToken(data.token); setPassword(''); }
+    try { const response = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); localStorage.setItem(tokenKey, data.token); setToken(data.token); setUsername(''); setPassword(''); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'ورود انجام نشد.'); }
   };
 
@@ -70,7 +71,7 @@ export default function AdminPanel() {
     { target: '[data-tour="admin-requests"]', title: 'پرداخت و مشاوره', description: 'تأیید پرداخت، فعال‌سازی خودکار دوره و پیگیری درخواست‌های مشاوره از این قسمت انجام می‌شود.', emoji: '✅', onEnter: () => setTab('requests') },
   ], []);
 
-  if (!token) return <div className="min-h-[70vh] bg-slate-50 py-16" dir="rtl"><form onSubmit={login} className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-7 shadow-xl"><div className="mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-amber-100 text-amber-700"><ShieldCheck className="h-7 w-7" /></div><h1 className="text-2xl font-black text-slate-950">ورود مدیریت</h1><p className="mt-2 text-sm text-slate-500">رمز امن مدیریت را وارد کنید.</p><input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="input-admin mt-5 w-full" placeholder="رمز مدیریت" />{error && <p className="mt-3 text-sm text-rose-600">{error}</p>}<button className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 p-3 text-sm font-bold text-white"><LogIn className="h-4 w-4" />ورود</button></form></div>;
+  if (!token) return <div className="min-h-[70vh] bg-slate-50 py-16" dir="rtl"><form onSubmit={login} className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-7 shadow-xl"><div className="mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-amber-100 text-amber-700"><ShieldCheck className="h-7 w-7" /></div><h1 className="text-2xl font-black text-slate-950">ورود مدیریت</h1><p className="mt-2 text-sm text-slate-500">نام کاربری و رمز امن مدیریت را وارد کنید.</p><input required value={username} onChange={(e) => setUsername(e.target.value)} className="input-admin mt-5 w-full" placeholder="نام کاربری مدیر" dir="ltr" /><input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="input-admin mt-3 w-full" placeholder="رمز مدیریت" />{error && <p className="mt-3 text-sm text-rose-600">{error}</p>}<button className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 p-3 text-sm font-bold text-white"><LogIn className="h-4 w-4" />ورود</button></form></div>;
 
   const tabs: Array<{ id: Tab; label: string; icon: typeof BarChart3 }> = [{ id: 'learning', label: 'آموزش و کاربران', icon: BarChart3 }, { id: 'courses', label: 'دوره و جلسه', icon: BookOpen }, { id: 'projects', label: 'ارزیابی پروژه', icon: FolderKanban }, { id: 'messages', label: 'نظرها و پیام‌ها', icon: MessageSquareText }, { id: 'requests', label: 'درخواست‌ها', icon: ClipboardList }];
   return <div className="relative min-h-[80vh] overflow-hidden bg-gradient-to-b from-violet-50 via-slate-50 to-sky-50 py-7" dir="rtl"><div className="pointer-events-none absolute -right-16 top-20 h-52 w-52 rounded-full bg-fuchsia-200/30 blur-3xl" /><div className="pointer-events-none absolute -left-16 bottom-20 h-64 w-64 rounded-full bg-cyan-200/30 blur-3xl" /><div className="relative mx-auto max-w-[1500px] px-4 sm:px-6">

@@ -45,6 +45,7 @@ npm run dev
 
 فایل `.env.example` را به `.env` کپی و مقدارهای زیر را با مقدار واقعی جایگزین کنید:
 
+- `SKILLUP_ADMIN_USERNAME`: نام کاربری مدیر (پیش‌فرض `admin`).
 - `SKILLUP_ADMIN_PASSWORD`: رمز طولانی و یکتای مدیر.
 - `SKILLUP_SESSION_SECRET`: مقدار تصادفی حداقل ۳۲ کاراکتر برای امضای نشست‌ها.
 - `PUBLIC_BASE_URL`: دامنه عمومی برای لینک QR گواهینامه.

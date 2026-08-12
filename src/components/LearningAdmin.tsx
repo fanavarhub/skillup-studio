@@ -1,10 +1,12 @@
 import { FormEvent, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Bot, CheckCircle2, Download, FileSpreadsheet, Gift, RotateCcw, Save, Users } from 'lucide-react';
+import { Bot, CheckCircle2, Download, FileSpreadsheet, Gift, Layers3, Pencil, PlusCircle, RotateCcw, Save, Trash2, Users } from 'lucide-react';
 
-type Student = { userId: string; name: string; xp: number; level: number; isBot: boolean; blocked?: boolean; publicLabel?: string; watchSeconds: number; completedVideos: number; answers: number; projects: number; lastActivityAt: string };
+type Student = { userId: string; name: string; xp: number; level: number; assignedLevel?: number; avatar?: string; isBot: boolean; blocked?: boolean; publicLabel?: string; watchSeconds: number; completedVideos: number; answers: number; projects: number; lastActivityAt: string };
 type DashboardData = { summary: { students: number; demoAccounts: number; totalWatchSeconds: number; submittedProjects: number }; students: Student[]; botActivities: Array<{ id: string; user_id: string; activity: string; xp_delta: number; created_at: string }> };
 type CertificateRequest = { id: string; user_id: string; course_id: string; status: string; student_name: string; student_note?: string; admin_note?: string; updated_at: string };
+type DailyTask = { id: string; levelBand: string; courseId?: string; courseTitle?: string; question: string; options: string[]; answerIndex: number; explanation?: string; xpReward: number; sortOrder: number; isActive: boolean };
+const emptyTask = { courseId: '', levelBand: 'starter', question: '', option1: '', option2: '', option3: '', option4: '', answerIndex: '0', explanation: '', xpReward: '3', sortOrder: '0' };
 
 export default function LearningAdmin({ token, courses }: { token: string; courses: Array<{ id: string; title: string }> }) {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -16,13 +18,18 @@ export default function LearningAdmin({ token, courses }: { token: string; cours
   const [assignment, setAssignment] = useState({ courseId: '', title: '', description: '', dueAt: '' });
   const [certificateNotes, setCertificateNotes] = useState<Record<string, string>>({});
   const [announcement, setAnnouncement] = useState('');
+  const [tasks, setTasks] = useState<DailyTask[]>([]);
+  const [taskForm, setTaskForm] = useState(emptyTask);
+  const [editingTask, setEditingTask] = useState<string | null>(null);
+  const [bulkText, setBulkText] = useState('');
 
   const adminFetch = (url: string, init: RequestInit = {}) => fetch(url, { ...init, headers: { Authorization: `Bearer ${token}`, ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}) } });
 
   const load = async () => {
-    const [dashboardResponse, requestsResponse] = await Promise.all([
+    const [dashboardResponse, requestsResponse, tasksResponse] = await Promise.all([
       adminFetch('/api/admin/learning-dashboard'),
       adminFetch('/api/admin/certificate-requests'),
+      adminFetch('/api/admin/questions'),
     ]);
     if (dashboardResponse.ok) {
       const result = await dashboardResponse.json();
@@ -30,6 +37,7 @@ export default function LearningAdmin({ token, courses }: { token: string; cours
       if (!selectedUser && result.students.length) setSelectedUser(result.students[0].userId);
     }
     if (requestsResponse.ok) setRequests(await requestsResponse.json());
+    if (tasksResponse.ok) setTasks(await tasksResponse.json());
   };
 
   useEffect(() => { load().catch(console.error); }, [token]);
@@ -74,6 +82,41 @@ export default function LearningAdmin({ token, courses }: { token: string; cours
     if (response.ok) { setAnnouncement(''); setMessage('اعلان باشگاه منتشر شد.'); }
   };
 
+  const setLearningLevel = async (student: Student, level: number) => {
+    const response = await adminFetch(`/api/admin/users/${student.userId}/learning-level`, { method: 'PATCH', body: JSON.stringify({ level }) });
+    if (response.ok) { setMessage(`سطح آموزشی ${student.name} روی ${level} تنظیم شد.`); load().catch(console.error); }
+  };
+
+  const saveTask = async (event: FormEvent) => {
+    event.preventDefault();
+    const payload = { courseId: taskForm.courseId, levelBand: taskForm.levelBand, question: taskForm.question, options: [taskForm.option1, taskForm.option2, taskForm.option3, taskForm.option4].filter(Boolean), answerIndex: Number(taskForm.answerIndex), explanation: taskForm.explanation, xpReward: Number(taskForm.xpReward), sortOrder: Number(taskForm.sortOrder), isActive: true };
+    const response = await adminFetch(editingTask ? `/api/admin/questions/${editingTask}` : '/api/admin/questions', { method: editingTask ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
+    const result = await response.json();
+    setMessage(response.ok ? (editingTask ? 'مأموریت ویرایش شد.' : 'مأموریت جدید اضافه شد.') : result.error);
+    if (response.ok) { setTaskForm(emptyTask); setEditingTask(null); load().catch(console.error); }
+  };
+
+  const editTask = (task: DailyTask) => {
+    setEditingTask(task.id);
+    setTaskForm({ courseId: task.courseId || '', levelBand: task.levelBand, question: task.question, option1: task.options[0] || '', option2: task.options[1] || '', option3: task.options[2] || '', option4: task.options[3] || '', answerIndex: String(task.answerIndex), explanation: task.explanation || '', xpReward: String(task.xpReward), sortOrder: String(task.sortOrder) });
+  };
+
+  const toggleTask = async (task: DailyTask) => {
+    await adminFetch(`/api/admin/questions/${task.id}`, { method: 'PATCH', body: JSON.stringify({ isActive: !task.isActive }) });
+    load().catch(console.error);
+  };
+
+  const addBulkTasks = async () => {
+    const parsed = bulkText.split(/\r?\n/).map((line, sortOrder) => {
+      const [question, option1, option2, option3, option4, answer, explanation = ''] = line.split('|').map((part) => part.trim());
+      return { question, options: [option1, option2, option3, option4].filter(Boolean), answerIndex: Math.max(0, Number(answer) - 1), explanation, courseId: taskForm.courseId, levelBand: taskForm.levelBand, xpReward: Number(taskForm.xpReward), sortOrder };
+    }).filter((item) => item.question && item.options.length >= 2);
+    const response = await adminFetch('/api/admin/questions/bulk', { method: 'POST', body: JSON.stringify({ tasks: parsed }) });
+    const result = await response.json();
+    setMessage(response.ok ? `${result.created} مأموریت به‌صورت گروهی اضافه شد.` : result.error);
+    if (response.ok) { setBulkText(''); load().catch(console.error); }
+  };
+
   if (!data) return <div className="py-20 text-center text-sm text-slate-500">در حال آماده‌سازی داشبورد آموزشی…</div>;
 
   return <div className="space-y-6 text-right" dir="rtl">
@@ -90,10 +133,16 @@ export default function LearningAdmin({ token, courses }: { token: string; cours
     </div>
 
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-      <table className="w-full text-xs min-w-[950px]"><thead className="bg-slate-100"><tr>{['هنرجو','نوع','XP / Level','زمان مشاهده','ویدئوی کامل','پاسخ‌ها','پروژه‌ها','آخرین فعالیت','باشگاه'].map((head) => <th key={head} className="p-3 text-right">{head}</th>)}</tr></thead>
-        <tbody>{data.students.map((student) => <tr key={student.userId} className="border-t border-slate-100"><td className="p-3 font-bold">{student.name}</td><td className="p-3">{student.isBot ? <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-800 inline-flex gap-1"><Bot className="w-3 h-3"/>ربات/نمایشی</span> : 'واقعی'}</td><td className="p-3">{student.xp} / L{student.level}</td><td className="p-3">{Math.round(student.watchSeconds / 60)} دقیقه</td><td className="p-3">{student.completedVideos}</td><td className="p-3">{student.answers}</td><td className="p-3">{student.projects}</td><td className="p-3">{new Date(student.lastActivityAt).toLocaleString('fa-IR')}</td><td className="p-3"><button onClick={() => toggleBlock(student)} className={`px-2 py-1 rounded-lg font-bold ${student.blocked ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{student.blocked ? 'رفع مسدودی' : 'مسدودکردن'}</button></td></tr>)}</tbody>
+      <table className="w-full text-xs min-w-[1050px]"><thead className="bg-slate-100"><tr>{['هنرجو','نوع','XP','سطح آموزشی','زمان مشاهده','ویدئوی کامل','پاسخ‌ها','پروژه‌ها','آخرین فعالیت','باشگاه'].map((head) => <th key={head} className="p-3 text-right">{head}</th>)}</tr></thead>
+        <tbody>{data.students.map((student) => <tr key={student.userId} className="border-t border-slate-100"><td className="p-3 font-bold"><span className="ml-2 text-lg">{student.avatar || '🧑‍🚀'}</span>{student.name}</td><td className="p-3">{student.isBot ? <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-800 inline-flex gap-1"><Bot className="w-3 h-3"/>ربات/نمایشی</span> : 'واقعی'}</td><td className="p-3">{student.xp}</td><td className="p-3"><select value={student.level} onChange={(event) => setLearningLevel(student, Number(event.target.value))} className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 font-bold text-violet-700">{Array.from({ length: 50 }, (_, index) => index + 1).map((level) => <option key={level} value={level}>سطح {level}</option>)}</select></td><td className="p-3">{Math.round(student.watchSeconds / 60)} دقیقه</td><td className="p-3">{student.completedVideos}</td><td className="p-3">{student.answers}</td><td className="p-3">{student.projects}</td><td className="p-3">{new Date(student.lastActivityAt).toLocaleString('fa-IR')}</td><td className="p-3"><button onClick={() => toggleBlock(student)} className={`px-2 py-1 rounded-lg font-bold ${student.blocked ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{student.blocked ? 'رفع مسدودی' : 'مسدودکردن'}</button></td></tr>)}</tbody>
       </table>
     </div>
+
+    <section className="rounded-[30px] border-2 border-violet-100 bg-white p-5 shadow-sm"><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h4 className="flex items-center gap-2 text-lg font-black"><Layers3 className="h-5 w-5 text-violet-600"/>مدیریت مأموریت‌های روزانه</h4><p className="mt-1 text-xs text-slate-500">هر هنرجو روزانه فقط یک مرحله متناسب با دوره فعال و سطح تعیین‌شده دریافت می‌کند.</p></div><span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">{tasks.filter((task) => task.isActive).length} مأموریت فعال</span></div>
+      <div className="grid gap-5 xl:grid-cols-[420px_1fr]"><div className="space-y-4"><form onSubmit={saveTask} className="space-y-3 rounded-3xl bg-violet-50/60 p-4"><h5 className="font-black">{editingTask ? 'ویرایش مأموریت' : 'مأموریت جدید'}</h5><div className="grid grid-cols-2 gap-2"><select value={taskForm.courseId} onChange={(event) => setTaskForm({ ...taskForm, courseId: event.target.value })} className="input-admin"><option value="">مهارت عمومی</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}</select><select value={taskForm.levelBand} onChange={(event) => setTaskForm({ ...taskForm, levelBand: event.target.value })} className="input-admin"><option value="starter">سطح ۱ تا ۱۰</option><option value="skiller">سطح ۱۱ تا ۳۰</option><option value="master">سطح ۳۱ به بالا</option></select></div><textarea required value={taskForm.question} onChange={(event) => setTaskForm({ ...taskForm, question: event.target.value })} placeholder="متن مأموریت یا سؤال" className="input-admin min-h-20 w-full"/><div className="grid grid-cols-2 gap-2">{(['option1','option2','option3','option4'] as const).map((key, index) => <input required={index < 2} key={key} value={taskForm[key]} onChange={(event) => setTaskForm({ ...taskForm, [key]: event.target.value })} placeholder={`گزینه ${index + 1}`} className="input-admin"/>)}</div><div className="grid grid-cols-3 gap-2"><select value={taskForm.answerIndex} onChange={(event) => setTaskForm({ ...taskForm, answerIndex: event.target.value })} className="input-admin"><option value="0">پاسخ ۱</option><option value="1">پاسخ ۲</option><option value="2">پاسخ ۳</option><option value="3">پاسخ ۴</option></select><input type="number" min="1" max="100" value={taskForm.xpReward} onChange={(event) => setTaskForm({ ...taskForm, xpReward: event.target.value })} className="input-admin" title="امتیاز"/><input type="number" value={taskForm.sortOrder} onChange={(event) => setTaskForm({ ...taskForm, sortOrder: event.target.value })} className="input-admin" title="ترتیب"/></div><input value={taskForm.explanation} onChange={(event) => setTaskForm({ ...taskForm, explanation: event.target.value })} placeholder="توضیح پاسخ" className="input-admin w-full"/><div className="flex gap-2"><button className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-violet-600 py-2.5 text-xs font-black text-white"><PlusCircle className="h-4 w-4"/>{editingTask ? 'ذخیره تغییرات' : 'افزودن مأموریت'}</button>{editingTask && <button type="button" onClick={() => { setEditingTask(null); setTaskForm(emptyTask); }} className="rounded-2xl bg-white px-4 text-xs font-bold text-slate-500">انصراف</button>}</div></form>
+        <div className="rounded-3xl border border-dashed border-sky-200 bg-sky-50/60 p-4"><h5 className="font-black text-sky-900">افزودن گروهی</h5><p className="mt-1 text-[10px] leading-5 text-sky-700">هر خط: سؤال | گزینه۱ | گزینه۲ | گزینه۳ | گزینه۴ | شماره پاسخ ۱ تا ۴ | توضیح</p><textarea value={bulkText} onChange={(event) => setBulkText(event.target.value)} className="input-admin mt-3 min-h-28 w-full" placeholder="۲+۲ چند است؟ | ۳ | ۴ | ۵ | ۶ | ۲ | پاسخ ۴ است"/><button type="button" onClick={addBulkTasks} className="mt-2 w-full rounded-2xl bg-sky-600 py-2.5 text-xs font-black text-white">ثبت گروهی با دوره و سطح انتخاب‌شده بالا</button></div></div>
+        <div className="max-h-[680px] space-y-2 overflow-y-auto pl-1">{tasks.map((task) => <article key={task.id} className={`rounded-2xl border p-4 ${task.isActive ? 'border-slate-100 bg-white' : 'border-slate-200 bg-slate-50 opacity-65'}`}><div className="flex items-start justify-between gap-3"><div><div className="mb-2 flex flex-wrap gap-1"><span className="rounded-full bg-violet-100 px-2 py-1 text-[9px] font-bold text-violet-700">{task.levelBand}</span><span className="rounded-full bg-sky-100 px-2 py-1 text-[9px] font-bold text-sky-700">{task.courseTitle || 'عمومی'}</span><span className="rounded-full bg-amber-100 px-2 py-1 text-[9px] font-bold text-amber-700">{task.xpReward} XP</span></div><h6 className="text-sm font-black leading-7 text-slate-800">{task.question}</h6><p className="mt-1 text-[10px] text-slate-400">{task.options.join(' · ')}</p></div><div className="flex shrink-0 gap-1"><button onClick={() => editTask(task)} className="rounded-xl bg-indigo-50 p-2 text-indigo-600" title="ویرایش"><Pencil className="h-4 w-4"/></button><button onClick={() => toggleTask(task)} className={`rounded-xl p-2 ${task.isActive ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`} title={task.isActive ? 'غیرفعال‌کردن' : 'فعال‌کردن'}>{task.isActive ? <Trash2 className="h-4 w-4"/> : <RotateCcw className="h-4 w-4"/>}</button></div></div></article>)}</div></div>
+    </section>
 
     <section className="rounded-3xl bg-white border border-slate-200 p-5"><h4 className="font-black mb-3">اعلان باشگاه یادگیری</h4><div className="flex gap-2"><input value={announcement} onChange={(e) => setAnnouncement(e.target.value)} placeholder="پیام سراسری مدیر" className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"/><button onClick={sendAnnouncement} className="px-4 py-2 rounded-xl bg-cyan-600 text-white text-xs font-bold">انتشار</button></div></section>
 

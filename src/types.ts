@@ -80,6 +80,7 @@ export interface StudentProfile {
   nextLevelXp?: number;
   progress?: number;
   tier?: 'Starter' | 'Skiller' | 'Skill Master';
+  avatar?: string;
   xpLedger?: Array<{ delta: number; eventType: string; reason?: string; createdAt: string }>;
 }
 
@@ -149,4 +150,5 @@ export interface AuthUser {
   name: string;
   phone: string;
   role: UserRole;
+  avatar?: string;
 }

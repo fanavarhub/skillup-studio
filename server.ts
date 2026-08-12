@@ -16,6 +16,7 @@ const isProduction = process.env.NODE_ENV === 'production'
 const rootDir = process.cwd()
 const dataDir = path.join(rootDir, 'data')
 const dbPath = path.join(dataDir, 'skillup-studio.sqlite')
+const adminUsername = process.env.SKILLUP_ADMIN_USERNAME || 'admin'
 const adminPassword = process.env.SKILLUP_ADMIN_PASSWORD || (isProduction ? '' : 'SkillUp@1405')
 
 if (isProduction && !adminPassword) throw new Error('SKILLUP_ADMIN_PASSWORD must be configured in production.')
@@ -418,9 +419,10 @@ app.get('/api/health', (req, res) => {
 })
 
 app.post('/api/admin/login', authRateLimit, (req, res) => {
+  const username = cleanText(req.body.username, 120)
   const password = cleanText(req.body.password, 200)
-  if (!password || password !== adminPassword) {
-    res.status(401).json({ error: 'رمز مدیر اشتباه است.' })
+  if (username !== adminUsername || !password || password !== adminPassword) {
+    res.status(401).json({ error: 'نام کاربری یا رمز مدیر اشتباه است.' })
     return
   }
   res.json({ success: true, token: createAdminToken(), expiresInMs: sessionDurationMs })
@@ -469,9 +471,10 @@ app.post('/api/auth/login', authRateLimit, (req, res) => {
   const password = cleanText(req.body.password, 200)
   const mode = cleanText(req.body.mode, 20)
 
-  if (mode === 'admin') {
-    if (!password || password !== adminPassword) {
-      res.status(401).json({ error: 'رمز مدیر اشتباه است.' })
+  if (mode === 'admin' || cleanText(req.body.username, 120) === adminUsername) {
+    const username = cleanText(req.body.username, 120)
+    if (username !== adminUsername || !password || password !== adminPassword) {
+      res.status(401).json({ error: 'نام کاربری یا رمز مدیر اشتباه است.' })
       return
     }
     res.json({

@@ -36,6 +36,7 @@ before(async () => {
       ...process.env,
       NODE_ENV: 'production',
       PORT: String(port),
+      SKILLUP_ADMIN_USERNAME: 'test-admin',
       SKILLUP_ADMIN_PASSWORD: 'Automated-Test-Admin-Password',
       SKILLUP_SESSION_SECRET: 'automated-test-session-secret-longer-than-32-characters',
       PUBLIC_BASE_URL: base,
@@ -93,10 +94,14 @@ test('register creates an isolated level-one profile', async () => {
   assert.equal(profile.body.studentName, 'Test Student')
   assert.equal(profile.body.xp, 0)
   assert.equal(profile.body.level, 1)
+  const dailyBeforeEnrollment = await request('/api/daily-questions', auth(studentToken))
+  assert.equal(dailyBeforeEnrollment.body.mission, null)
 })
 
 test('admin creates a session, uploads an allowed file and enrollment controls access', async () => {
-  const login = await request('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'Automated-Test-Admin-Password' }) })
+  const rejectedLogin = await request('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'Automated-Test-Admin-Password' }) })
+  assert.equal(rejectedLogin.response.status, 401)
+  const login = await request('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'test-admin', password: 'Automated-Test-Admin-Password' }) })
   adminToken = login.body.token
   const created = await request('/api/admin/course-sessions', { method: 'POST', ...auth(adminToken, { courseId: 'course-1', title: 'Tracked lesson', description: 'Test lesson', xpReward: 13, durationSeconds: 1 }) })
   assert.equal(created.response.status, 201)
@@ -122,6 +127,41 @@ test('admin creates a session, uploads an allowed file and enrollment controls a
   assert.match(access.body.url, /token=/)
 })
 
+test('admin assigns learning level and course-specific daily mission is completed once', async () => {
+  const level = await request('/api/admin/users/not-found/learning-level', { method: 'PATCH', ...auth(adminToken, { level: 5 }) })
+  assert.equal(level.response.status, 404)
+  const dashboard = await request('/api/admin/learning-dashboard', auth(adminToken))
+  const student = dashboard.body.students.find((item) => item.name === 'Test Student')
+  const assigned = await request(`/api/admin/users/${student.userId}/learning-level`, { method: 'PATCH', ...auth(adminToken, { level: 5 }) })
+  assert.equal(assigned.body.level, 5)
+  const created = await request('/api/admin/questions', { method: 'POST', ...auth(adminToken, { courseId: 'course-1', levelBand: 'starter', question: 'Course mission', options: ['A', 'B'], answerIndex: 1, explanation: 'B', xpReward: 7 }) })
+  assert.equal(created.response.status, 201)
+  const daily = await request('/api/daily-questions', auth(studentToken))
+  assert.equal(daily.body.questions.length, 1)
+  assert.equal(daily.body.mission.courseId, 'course-1')
+  assert.equal(daily.body.level, 5)
+  const first = await request(`/api/daily-questions/${daily.body.mission.id}/answer`, { method: 'POST', ...auth(studentToken, { selectedIndex: 1 }) })
+  const duplicate = await request(`/api/daily-questions/${daily.body.mission.id}/answer`, { method: 'POST', ...auth(studentToken, { selectedIndex: 1 }) })
+  assert.deepEqual([first.body.xpAwarded, duplicate.body.xpAwarded], [7, 0])
+  const bulk = await request('/api/admin/questions/bulk', { method: 'POST', ...auth(adminToken, { tasks: [
+    { courseId: 'course-1', levelBand: 'starter', question: 'Bulk one', options: ['1', '2'], answerIndex: 0 },
+    { courseId: 'course-1', levelBand: 'starter', question: 'Bulk two', options: ['1', '2'], answerIndex: 1 },
+  ] }) })
+  assert.equal(bulk.body.created, 2)
+  const tasks = await request('/api/admin/questions', auth(adminToken))
+  const createdTask = tasks.body.find((item) => item.question === 'Bulk one')
+  assert.deepEqual(createdTask.options, ['1', '2'])
+  await request(`/api/admin/questions/${createdTask.id}`, { method: 'PATCH', ...auth(adminToken, { isActive: false }) })
+  const updatedTasks = await request('/api/admin/questions', auth(adminToken))
+  assert.equal(updatedTasks.body.find((item) => item.id === createdTask.id).isActive, false)
+})
+
+test('student can update display identity', async () => {
+  const updated = await request('/api/profile', { method: 'PATCH', ...auth(studentToken, { name: 'New Student Name', avatar: '🐲' }) })
+  assert.equal(updated.body.studentName, 'New Student Name')
+  assert.equal(updated.body.avatar, '🐲')
+})
+
 test('manual completion is rejected and heartbeat awards XP exactly once after real coverage', async () => {
   const manual = await request('/api/student-profile/action', { method: 'POST', ...auth(studentToken, { actionType: 'watch_video', targetId: 'v1', courseId: 'course-1', watchedPercent: 100 }) })
   assert.equal(manual.response.status, 410)
@@ -142,12 +182,12 @@ test('project submission ignores spoofed identity and awards 40 XP once', async 
   for (let index = 1; index <= 2; index += 1) {
     const result = await request('/api/projects', { method: 'POST', ...auth(studentToken, { title: `Project ${index}`, category: 'Game', studentName: 'Spoofed Name', status: 'approved', scratchId: `1000${index}` }) })
     assert.equal(result.response.status, 201)
-    assert.equal(result.body.studentName, 'Test Student')
+    assert.equal(result.body.studentName, 'New Student Name')
     assert.equal(result.body.status, 'pending')
     if (index === 1) projectId = result.body.id
   }
   const profile = await request('/api/student-profile', auth(studentToken))
-  assert.equal(profile.body.xp, 93)
+  assert.equal(profile.body.xp, 100)
 })
 
 test('public weekly league never exposes simulated accounts', async () => {
@@ -175,7 +215,7 @@ test('admin dashboard, rubric grading and certificate verification work', async 
   await request(`/api/projects/${projectId}`, { method: 'PATCH', ...auth(adminToken, { status: 'revision_required', scoreAwarded: 50, adminNotes: 'Please revise', rubric: [{ title: 'Technical', maxScore: 60 }] }) })
   await request(`/api/projects/${projectId}`, { method: 'PATCH', ...auth(adminToken, { status: 'revision_required', scoreAwarded: 50 }) })
   const graded = await request('/api/student-profile', auth(studentToken))
-  assert.equal(graded.body.xp, 143)
+  assert.equal(graded.body.xp, 150)
 
   const certRequest = await request('/api/certificates/issue', { method: 'POST', ...auth(studentToken, { courseId: 'course-1' }) })
   assert.equal(certRequest.body.status, 'pending')

@@ -57,6 +57,12 @@ function weekStart(date = new Date()) {
   return local.toISOString().slice(0, 10)
 }
 
+function learningBand(level: number) {
+  if (level >= 31) return 'master'
+  if (level >= 11) return 'skiller'
+  return 'starter'
+}
+
 function session(req: Request) {
   return readSession(req) as SessionUser | null
 }
@@ -75,17 +81,42 @@ function profileRow(db: DatabaseSync, user: SessionUser) {
 
 function publicProfile(row: any) {
   const progress = levelProgress(Number(row.xp || 0))
+  const learningLevel = Number(row.assigned_level || progress.level)
   return {
     userId: row.user_id,
     studentName: row.display_name,
     xp: Number(row.xp || 0),
     ...progress,
-    tier: tier(progress.level),
+    level: learningLevel,
+    tier: tier(learningLevel),
+    avatar: row.avatar || '🧑‍🚀',
     purchasedCourses: json<string[]>(row.purchased_courses, []),
     isBot: Boolean(row.is_bot),
     publicLabel: row.public_label || undefined,
     lastActivityAt: row.last_activity_at,
   }
+}
+
+function dailyMission(db: DatabaseSync, auth: SessionUser) {
+  const profile = publicProfile(profileRow(db, auth))
+  const band = learningBand(profile.level)
+  const purchased = profile.purchasedCourses as string[]
+  let rows: any[] = []
+  if (purchased.length) {
+    const placeholders = purchased.map(() => '?').join(',')
+    rows = db.prepare(`SELECT q.*, c.title AS course_title FROM question_bank q
+      LEFT JOIN courses c ON c.id = q.course_id
+      WHERE q.level_band = ? AND q.is_active = 1 AND q.course_id IN (${placeholders})
+      ORDER BY q.sort_order, q.id`).all(band, ...purchased) as any[]
+    if (!rows.length) rows = db.prepare(`SELECT q.*, NULL AS course_title FROM question_bank q
+      WHERE q.level_band = ? AND q.is_active = 1 AND q.course_id IS NULL ORDER BY q.sort_order, q.id`).all(band) as any[]
+  }
+  if (!rows.length) return { day: tehranDay(), profile, mission: null }
+  const day = tehranDay()
+  const dayNumber = Math.floor(Date.parse(`${day}T00:00:00Z`) / 86_400_000)
+  const userSeed = crypto.createHash('sha256').update(auth.id).digest().readUInt32BE(0)
+  const mission = rows[(dayNumber + userSeed) % rows.length]
+  return { day, profile, mission }
 }
 
 function awardXp(db: DatabaseSync, userId: string, delta: number, eventType: string, referenceId: string, reason = '', source = 'system') {
@@ -265,6 +296,12 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     );
   `)
 
+  ensureColumn(db, 'student_profiles', 'assigned_level', 'INTEGER')
+  ensureColumn(db, 'student_profiles', 'avatar', "TEXT NOT NULL DEFAULT '🧑‍🚀'")
+  ensureColumn(db, 'question_bank', 'course_id', 'TEXT')
+  ensureColumn(db, 'question_bank', 'xp_reward', 'INTEGER NOT NULL DEFAULT 3')
+  ensureColumn(db, 'question_bank', 'sort_order', 'INTEGER NOT NULL DEFAULT 0')
+
   const users = db.prepare("SELECT id, name FROM users WHERE role = 'student'").all() as Array<{ id: string; name: string }>
   const seedProfile = db.prepare(`INSERT OR IGNORE INTO student_profiles
     (user_id, display_name, xp, purchased_courses, is_bot, created_at, updated_at, last_activity_at)
@@ -297,12 +334,23 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     const auth = res.locals.session as SessionUser
     generateNotifications(db, auth.id)
     const row = profileRow(db, auth)
-    db.prepare('UPDATE student_profiles SET last_activity_at = ?, display_name = ? WHERE user_id = ?').run(now(), auth.name, auth.id)
+    db.prepare('UPDATE student_profiles SET last_activity_at = ? WHERE user_id = ?').run(now(), auth.id)
     const ledger = db.prepare('SELECT delta, event_type AS eventType, reason, created_at AS createdAt FROM xp_ledger WHERE user_id = ? ORDER BY created_at DESC LIMIT 30').all(auth.id)
     const completedVideos = (db.prepare('SELECT video_id FROM video_progress WHERE user_id = ? AND watched_percent >= 75').all(auth.id) as Array<{ video_id: string }>).map((item) => item.video_id)
     const completedSessions = (db.prepare('SELECT session_id FROM session_progress WHERE user_id = ? AND completed_at IS NOT NULL').all(auth.id) as Array<{ session_id: string }>).map((item) => item.session_id)
     const completedQuizzes = (db.prepare('SELECT DISTINCT question_id FROM daily_answers WHERE user_id = ? AND is_correct = 1').all(auth.id) as Array<{ question_id: string }>).map((item) => item.question_id)
     res.json({ ...publicProfile(row), completedVideos, completedSessions, completedQuizzes, unlockedRewards: [], xpLedger: ledger })
+  })
+
+  app.patch('/api/profile', requireStudent, (req, res) => {
+    const auth = res.locals.session as SessionUser
+    const displayName = text(req.body.name, 120)
+    const allowedAvatars = ['🧑‍🚀', '🦊', '🐼', '🐯', '🤖', '🦄', '🐲', '🧙‍♀️']
+    const avatar = allowedAvatars.includes(req.body.avatar) ? req.body.avatar : '🧑‍🚀'
+    if (displayName.length < 2) return res.status(400).json({ error: 'نام نمایشی باید حداقل دو حرف باشد.' })
+    db.prepare('UPDATE student_profiles SET display_name = ?, avatar = ?, updated_at = ? WHERE user_id = ?').run(displayName, avatar, now(), auth.id)
+    db.prepare('UPDATE users SET name = ?, updated_at = ? WHERE id = ?').run(displayName, now(), auth.id)
+    res.json(publicProfile(db.prepare('SELECT * FROM student_profiles WHERE user_id = ?').get(auth.id)))
   })
 
   app.post('/api/student-profile/action', requireStudent, (req, res) => {
@@ -344,6 +392,7 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
 
   app.post('/api/projects', requireStudent, (req, res) => {
     const auth = res.locals.session as SessionUser
+    const displayName = publicProfile(profileRow(db, auth)).studentName
     const title = text(req.body.title, 180)
     const category = text(req.body.category, 30)
     if (!title || !['AI', 'Game', 'Communication'].includes(category)) return res.status(400).json({ error: 'عنوان و دسته‌بندی معتبر پروژه الزامی است.' })
@@ -353,7 +402,7 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     db.prepare(`INSERT INTO projects
       (id, title, description, category, embed_url, scratch_id, student_name, student_age, cover_image, status, created_at, updated_at, likes, featured, user_id, assignment_id, submission_version)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, 0, 0, ?, ?, 1)`
-    ).run(projectId, title, text(req.body.description, 1600), category, embed, scratchId || null, auth.name, Math.max(6, Math.min(99, Number(req.body.studentAge || 14))), text(req.body.coverImage, 500) || '/assets/project-soltan-pist.png', now(), now(), auth.id, text(req.body.assignmentId, 120) || null)
+    ).run(projectId, title, text(req.body.description, 1600), category, embed, scratchId || null, displayName, Math.max(6, Math.min(99, Number(req.body.studentAge || 14))), text(req.body.coverImage, 500) || '/assets/project-soltan-pist.png', now(), now(), auth.id, text(req.body.assignmentId, 120) || null)
     awardXp(db, auth.id, 40, 'submit_project', projectId, 'ارسال پروژه')
     res.status(201).json(projectDto(db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId)))
   })
@@ -447,29 +496,22 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
 
   app.get('/api/daily-questions', requireStudent, (req, res) => {
     const auth = res.locals.session as SessionUser
-    const profile = publicProfile(profileRow(db, auth))
-    const band = profile.level >= 31 ? 'master' : profile.level >= 11 ? 'skiller' : 'starter'
-    const day = tehranDay()
-    const seed = crypto.createHash('sha256').update(`${day}:${auth.id}`).digest().readUInt32BE(0)
-    const offset = seed % 28
-    const questions = db.prepare('SELECT id, question, options_json FROM question_bank WHERE level_band = ? AND is_active = 1 ORDER BY id LIMIT 3 OFFSET ?').all(band, offset) as any[]
-    const answered = db.prepare('SELECT question_id AS questionId, selected_index AS selectedIndex, is_correct AS isCorrect FROM daily_answers WHERE user_id = ? AND day_key = ?').all(auth.id, day)
-    res.json({ day, questions: questions.map((q) => ({ id: q.id, question: q.question, options: json(q.options_json, []) })), answered })
+    const { day, profile, mission } = dailyMission(db, auth)
+    const answer = mission ? db.prepare('SELECT question_id AS questionId, selected_index AS selectedIndex, is_correct AS isCorrect FROM daily_answers WHERE user_id = ? AND question_id = ? AND day_key = ?').get(auth.id, mission.id, day) : null
+    const dto = mission ? { id: mission.id, question: mission.question, options: json(mission.options_json, []), courseId: mission.course_id || undefined, courseTitle: mission.course_title || 'مهارت عمومی', xpReward: Number(mission.xp_reward || 3), levelBand: mission.level_band } : null
+    res.json({ day, level: profile.level, mission: dto, completed: Boolean(answer), answer, questions: dto ? [dto] : [], answered: answer ? [answer] : [] })
   })
 
   app.post('/api/daily-questions/:id/answer', requireStudent, (req, res) => {
     const auth = res.locals.session as SessionUser
-    const day = tehranDay()
-    const question = db.prepare('SELECT * FROM question_bank WHERE id = ? AND is_active = 1').get(req.params.id) as any
-    if (!question) return res.status(404).json({ error: fa.notFound })
+    const { day, mission: question } = dailyMission(db, auth)
+    if (!question || question.id !== req.params.id) return res.status(403).json({ error: 'این مأموریت برای امروز و سطح شما فعال نیست.' })
     const selected = Math.floor(Number(req.body.selectedIndex))
     const correct = selected === question.answer_index
     const result = db.prepare('INSERT OR IGNORE INTO daily_answers (user_id, question_id, day_key, selected_index, is_correct, created_at) VALUES (?, ?, ?, ?, ?, ?)')
       .run(auth.id, question.id, day, selected, correct ? 1 : 0, now())
     let awarded = 0
-    if (result.changes && correct) awarded += awardXp(db, auth.id, 3, 'daily_answer', `${day}:${question.id}`, 'پاسخ درست روزانه').awarded
-    const stats = db.prepare('SELECT COUNT(*) count, SUM(is_correct) correct FROM daily_answers WHERE user_id = ? AND day_key = ?').get(auth.id, day) as any
-    if (stats.count >= 3 && stats.correct >= 3) awarded += awardXp(db, auth.id, 5, 'daily_bonus', day, 'پاسخ درست به هر سه سؤال روز').awarded
+    if (result.changes && correct) awarded += awardXp(db, auth.id, Number(question.xp_reward || 3), 'daily_answer', `${day}:${question.id}`, 'تکمیل مأموریت روزانه').awarded
     res.json({ correct, explanation: question.explanation, xpAwarded: awarded })
   })
 
@@ -639,11 +681,11 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
       (SELECT COUNT(*) FROM daily_answers a WHERE a.user_id = p.user_id) AS answers,
       (SELECT COUNT(*) FROM projects pr WHERE pr.user_id = p.user_id) AS projects,
       EXISTS(SELECT 1 FROM blocked_users b WHERE b.user_id = p.user_id) AS blocked,
-      p.last_activity_at AS lastActivityAt
+      p.last_activity_at AS lastActivityAt, p.assigned_level AS assignedLevel, p.avatar
       FROM student_profiles p
       WHERE p.user_id <> 'admin-profile'
       GROUP BY p.user_id ORDER BY p.is_bot, p.display_name`).all() as any[]
-    res.json({ summary: { students: students.filter((s) => !s.isBot).length, demoAccounts: students.filter((s) => s.isBot).length, totalWatchSeconds: students.reduce((sum, s) => sum + Number(s.watchSeconds), 0), submittedProjects: students.reduce((sum, s) => sum + Number(s.projects), 0) }, students: students.map((s) => ({ ...s, level: levelForXp(s.xp), isBot: Boolean(s.isBot) })), botActivities: db.prepare('SELECT * FROM bot_activity_log ORDER BY created_at DESC LIMIT 50').all() })
+    res.json({ summary: { students: students.filter((s) => !s.isBot).length, demoAccounts: students.filter((s) => s.isBot).length, totalWatchSeconds: students.reduce((sum, s) => sum + Number(s.watchSeconds), 0), submittedProjects: students.reduce((sum, s) => sum + Number(s.projects), 0) }, students: students.map((s) => ({ ...s, level: Number(s.assignedLevel || levelForXp(s.xp)), isBot: Boolean(s.isBot) })), botActivities: db.prepare('SELECT * FROM bot_activity_log ORDER BY created_at DESC LIMIT 50').all() })
   })
 
   app.get('/api/admin/learning-dashboard.csv', requireAdminSession, (_req, res) => {
@@ -669,7 +711,11 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
   })
 
   app.get('/api/admin/questions', requireAdminSession, (_req, res) => {
-    res.json(db.prepare('SELECT id, level_band AS levelBand, question, options_json AS options, answer_index AS answerIndex, explanation, is_active AS isActive FROM question_bank ORDER BY level_band, id').all())
+    const rows = db.prepare(`SELECT q.id, q.level_band AS levelBand, q.course_id AS courseId, c.title AS courseTitle,
+      q.question, q.options_json AS options, q.answer_index AS answerIndex, q.explanation,
+      q.xp_reward AS xpReward, q.sort_order AS sortOrder, q.is_active AS isActive
+      FROM question_bank q LEFT JOIN courses c ON c.id = q.course_id ORDER BY q.level_band, q.sort_order, q.id`).all() as any[]
+    res.json(rows.map((row) => ({ ...row, options: json(row.options, []), isActive: Boolean(row.isActive) })))
   })
 
   app.post('/api/admin/questions', requireAdminSession, (req, res) => {
@@ -677,9 +723,33 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     const answerIndex = Math.floor(Number(req.body.answerIndex))
     if (!text(req.body.question, 500) || options.length < 2 || answerIndex < 0 || answerIndex >= options.length) return res.status(400).json({ error: 'صورت سؤال، گزینه‌ها و پاسخ صحیح معتبر الزامی است.' })
     const questionId = uid('question')
-    db.prepare('INSERT INTO question_bank (id, level_band, question, options_json, answer_index, explanation, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)')
-      .run(questionId, ['starter', 'skiller', 'master'].includes(req.body.levelBand) ? req.body.levelBand : 'starter', text(req.body.question, 500), JSON.stringify(options), answerIndex, text(req.body.explanation, 800))
+    const courseId = text(req.body.courseId, 120) || null
+    db.prepare('INSERT INTO question_bank (id, level_band, course_id, question, options_json, answer_index, explanation, xp_reward, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)')
+      .run(questionId, ['starter', 'skiller', 'master'].includes(req.body.levelBand) ? req.body.levelBand : 'starter', courseId, text(req.body.question, 500), JSON.stringify(options), answerIndex, text(req.body.explanation, 800), Math.max(1, Math.min(100, Number(req.body.xpReward) || 3)), Math.floor(Number(req.body.sortOrder) || 0))
     res.status(201).json({ id: questionId })
+  })
+
+  app.post('/api/admin/questions/bulk', requireAdminSession, (req, res) => {
+    const tasks = Array.isArray(req.body.tasks) ? req.body.tasks.slice(0, 100) : []
+    if (!tasks.length) return res.status(400).json({ error: 'حداقل یک مأموریت برای افزودن گروهی لازم است.' })
+    const insert = db.prepare('INSERT INTO question_bank (id, level_band, course_id, question, options_json, answer_index, explanation, xp_reward, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)')
+    let created = 0
+    db.exec('BEGIN')
+    try {
+      for (const task of tasks) {
+        const options = Array.isArray(task.options) ? task.options.map((item: unknown) => text(item, 180)).filter(Boolean).slice(0, 6) : []
+        const answerIndex = Math.floor(Number(task.answerIndex))
+        if (!text(task.question, 500) || options.length < 2 || answerIndex < 0 || answerIndex >= options.length) continue
+        insert.run(uid('question'), ['starter', 'skiller', 'master'].includes(task.levelBand) ? task.levelBand : 'starter', text(task.courseId, 120) || null, text(task.question, 500), JSON.stringify(options), answerIndex, text(task.explanation, 800), Math.max(1, Math.min(100, Number(task.xpReward) || 3)), Math.floor(Number(task.sortOrder) || created))
+        created += 1
+      }
+      db.exec('COMMIT')
+    } catch (error) {
+      db.exec('ROLLBACK')
+      throw error
+    }
+    if (!created) return res.status(400).json({ error: 'هیچ ردیف معتبری برای ثبت پیدا نشد.' })
+    res.status(201).json({ created })
   })
 
   app.patch('/api/admin/questions/:id', requireAdminSession, (req, res) => {
@@ -687,14 +757,23 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     if (!current) return res.status(404).json({ error: fa.notFound })
     const options = Array.isArray(req.body.options) ? req.body.options.map((item: unknown) => text(item, 180)).slice(0, 6) : json(current.options_json, [])
     const answerIndex = req.body.answerIndex === undefined ? current.answer_index : Math.floor(Number(req.body.answerIndex))
-    db.prepare('UPDATE question_bank SET level_band = ?, question = ?, options_json = ?, answer_index = ?, explanation = ?, is_active = ? WHERE id = ?')
-      .run(text(req.body.levelBand, 20) || current.level_band, text(req.body.question, 500) || current.question, JSON.stringify(options), answerIndex, req.body.explanation === undefined ? current.explanation : text(req.body.explanation, 800), req.body.isActive === false ? 0 : current.is_active, current.id)
+    const isActive = req.body.isActive === undefined ? current.is_active : req.body.isActive ? 1 : 0
+    db.prepare('UPDATE question_bank SET level_band = ?, course_id = ?, question = ?, options_json = ?, answer_index = ?, explanation = ?, xp_reward = ?, sort_order = ?, is_active = ? WHERE id = ?')
+      .run(text(req.body.levelBand, 20) || current.level_band, req.body.courseId === undefined ? current.course_id : (text(req.body.courseId, 120) || null), text(req.body.question, 500) || current.question, JSON.stringify(options), answerIndex, req.body.explanation === undefined ? current.explanation : text(req.body.explanation, 800), req.body.xpReward === undefined ? current.xp_reward : Math.max(1, Math.min(100, Number(req.body.xpReward) || 3)), req.body.sortOrder === undefined ? current.sort_order : Math.floor(Number(req.body.sortOrder) || 0), isActive, current.id)
     res.json({ success: true })
   })
 
   app.delete('/api/admin/questions/:id', requireAdminSession, (req, res) => {
     db.prepare('UPDATE question_bank SET is_active = 0 WHERE id = ?').run(req.params.id)
     res.json({ success: true })
+  })
+
+  app.patch('/api/admin/users/:id/learning-level', requireAdminSession, (req, res) => {
+    const level = Math.max(1, Math.min(99, Math.floor(Number(req.body.level))))
+    const result = db.prepare('UPDATE student_profiles SET assigned_level = ?, updated_at = ? WHERE user_id = ?').run(level, now(), req.params.id)
+    if (!result.changes) return res.status(404).json({ error: 'هنرجو پیدا نشد.' })
+    notifyUser(db, req.params.id, `learning-level:${level}:${tehranDay()}`, 'level_update', 'سطح آموزشی‌ات به‌روز شد', `مربی سطح آموزشی تو را روی ${level} تنظیم کرد؛ مأموریت‌های بعدی متناسب با این سطح هستند.`)
+    res.json({ success: true, level })
   })
 
   app.post('/api/admin/users/:id/block', requireAdminSession, (req, res) => {

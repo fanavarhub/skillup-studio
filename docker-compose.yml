@@ -8,6 +8,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4050
+      SKILLUP_ADMIN_USERNAME: ${SKILLUP_ADMIN_USERNAME:-admin}
       SKILLUP_ADMIN_PASSWORD: ${SKILLUP_ADMIN_PASSWORD:?Set SKILLUP_ADMIN_PASSWORD in .env before starting}
       SKILLUP_SESSION_SECRET: ${SKILLUP_SESSION_SECRET:?Set a random 32+ character SKILLUP_SESSION_SECRET in .env}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://skill-up.ir}
