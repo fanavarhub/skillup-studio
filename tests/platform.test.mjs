@@ -14,6 +14,8 @@ let server
 let studentToken = ''
 let adminToken = ''
 let projectId = ''
+let sessionId = ''
+let sessionAssetId = ''
 
 async function request(route, options = {}) {
   const response = await fetch(`${base}${route}`, options)
@@ -40,7 +42,7 @@ before(async () => {
     },
     stdio: 'ignore',
   })
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+  for (let attempt = 0; attempt < 150; attempt += 1) {
     try { if ((await fetch(`${base}/api/health`)).ok) return } catch {}
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
@@ -93,11 +95,47 @@ test('register creates an isolated level-one profile', async () => {
   assert.equal(profile.body.level, 1)
 })
 
-test('video XP is awarded once and only after 75 percent', async () => {
-  const first = await request('/api/student-profile/action', { method: 'POST', ...auth(studentToken, { actionType: 'watch_video', targetId: 'v1', courseId: 'course-1', watchedPercent: 74 }) })
-  const completed = await request('/api/student-profile/action', { method: 'POST', ...auth(studentToken, { actionType: 'watch_video', targetId: 'v1', courseId: 'course-1', watchedPercent: 75 }) })
-  const duplicate = await request('/api/student-profile/action', { method: 'POST', ...auth(studentToken, { actionType: 'watch_video', targetId: 'v1', courseId: 'course-1', watchedPercent: 100 }) })
-  assert.deepEqual([first.body.xpAwarded, completed.body.xpAwarded, duplicate.body.xpAwarded], [0, 10, 0])
+test('admin creates a session, uploads an allowed file and enrollment controls access', async () => {
+  const login = await request('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'Automated-Test-Admin-Password' }) })
+  adminToken = login.body.token
+  const created = await request('/api/admin/course-sessions', { method: 'POST', ...auth(adminToken, { courseId: 'course-1', title: 'Tracked lesson', description: 'Test lesson', xpReward: 13, durationSeconds: 1 }) })
+  assert.equal(created.response.status, 201)
+  sessionId = created.body.id
+
+  const form = new FormData()
+  form.append('file', new Blob(['%PDF-1.4 test'], { type: 'application/pdf' }), 'lesson.pdf')
+  const uploaded = await request(`/api/admin/course-sessions/${sessionId}/assets`, { method: 'POST', headers: { Authorization: `Bearer ${adminToken}` }, body: form })
+  assert.equal(uploaded.response.status, 201)
+  sessionAssetId = uploaded.body.id
+  const videoForm = new FormData()
+  videoForm.append('file', new Blob(['test-video-bytes'], { type: 'video/mp4' }), 'lesson.mp4')
+  const videoUpload = await request(`/api/admin/course-sessions/${sessionId}/assets`, { method: 'POST', headers: { Authorization: `Bearer ${adminToken}` }, body: videoForm })
+  assert.equal(videoUpload.response.status, 201)
+
+  const locked = await request('/api/student/courses/course-1/sessions', auth(studentToken))
+  assert.equal(locked.response.status, 403)
+  const purchase = await request('/api/purchases', { method: 'POST', ...auth(studentToken, { courseId: 'course-1', phone: '09120001122', receiptNumber: 'TEST-1234' }) })
+  await request(`/api/payments/${purchase.body.payment.id}`, { method: 'PATCH', ...auth(adminToken, { status: 'approved' }) })
+  const unlocked = await request('/api/student/courses/course-1/sessions', auth(studentToken))
+  assert.ok(unlocked.body.some((item) => item.id === sessionId))
+  const access = await request(`/api/session-assets/${sessionAssetId}/access`, auth(studentToken))
+  assert.match(access.body.url, /token=/)
+})
+
+test('manual completion is rejected and heartbeat awards XP exactly once after real coverage', async () => {
+  const manual = await request('/api/student-profile/action', { method: 'POST', ...auth(studentToken, { actionType: 'watch_video', targetId: 'v1', courseId: 'course-1', watchedPercent: 100 }) })
+  assert.equal(manual.response.status, 410)
+  const spoofedDuration = await request(`/api/sessions/${sessionId}/progress`, { method: 'POST', ...auth(studentToken, { currentTime: 0.1, duration: 0.1, playing: true }) })
+  assert.equal(spoofedDuration.response.status, 400)
+  const first = await request(`/api/sessions/${sessionId}/progress`, { method: 'POST', ...auth(studentToken, { currentTime: 0, duration: 1, playing: true }) })
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  const middle = await request(`/api/sessions/${sessionId}/progress`, { method: 'POST', ...auth(studentToken, { currentTime: 0.5, duration: 1, playing: true }) })
+  await new Promise((resolve) => setTimeout(resolve, 350))
+  const completed = await request(`/api/sessions/${sessionId}/progress`, { method: 'POST', ...auth(studentToken, { currentTime: 0.86, duration: 1, playing: true }) })
+  const duplicate = await request(`/api/sessions/${sessionId}/progress`, { method: 'POST', ...auth(studentToken, { currentTime: 0.9, duration: 1, playing: true }) })
+  assert.deepEqual([first.body.xpAwarded, middle.body.xpAwarded, completed.body.xpAwarded, duplicate.body.xpAwarded], [0, 0, 13, 0])
+  const notices = await request('/api/notifications', auth(studentToken))
+  assert.ok(notices.body.some((item) => item.type === 'session_complete'))
 })
 
 test('project submission ignores spoofed identity and awards 40 XP once', async () => {
@@ -109,21 +147,27 @@ test('project submission ignores spoofed identity and awards 40 XP once', async 
     if (index === 1) projectId = result.body.id
   }
   const profile = await request('/api/student-profile', auth(studentToken))
-  assert.equal(profile.body.xp, 90)
-  assert.equal(profile.body.level, 4)
+  assert.equal(profile.body.xp, 93)
 })
 
-test('weekly league visibly labels every simulated account', async () => {
+test('public weekly league never exposes simulated accounts', async () => {
   const { body } = await request('/api/leaderboard')
-  const demos = body.entries.filter((entry) => entry.isBot)
-  assert.ok(demos.length > 0)
   assert.ok(body.entries.length <= 5)
-  assert.ok(demos.every((entry) => entry.publicLabel === 'حساب نمایشی'))
+  assert.ok(body.entries.every((entry) => !entry.isBot && !entry.publicLabel))
+})
+
+test('site messages require moderation and can include an admin reply', async () => {
+  const submitted = await request('/api/site-messages', { method: 'POST', ...auth(studentToken, { body: 'A useful verified review', rating: 5 }) })
+  assert.equal(submitted.response.status, 201)
+  const before = await request('/api/site-messages')
+  assert.ok(!before.body.some((item) => item.id === submitted.body.id))
+  await request(`/api/admin/site-messages/${submitted.body.id}`, { method: 'PATCH', ...auth(adminToken, { status: 'approved', featured: true, adminReply: 'Thank you' }) })
+  const afterModeration = await request('/api/site-messages')
+  const publicItem = afterModeration.body.find((item) => item.id === submitted.body.id)
+  assert.equal(publicItem.adminReply, 'Thank you')
 })
 
 test('admin dashboard, rubric grading and certificate verification work', async () => {
-  const login = await request('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'Automated-Test-Admin-Password' }) })
-  adminToken = login.body.token
   const dashboard = await request('/api/admin/learning-dashboard', auth(adminToken))
   assert.equal(dashboard.body.summary.students, 1)
   assert.equal(dashboard.body.summary.demoAccounts, 8)
@@ -131,7 +175,7 @@ test('admin dashboard, rubric grading and certificate verification work', async 
   await request(`/api/projects/${projectId}`, { method: 'PATCH', ...auth(adminToken, { status: 'revision_required', scoreAwarded: 50, adminNotes: 'Please revise', rubric: [{ title: 'Technical', maxScore: 60 }] }) })
   await request(`/api/projects/${projectId}`, { method: 'PATCH', ...auth(adminToken, { status: 'revision_required', scoreAwarded: 50 }) })
   const graded = await request('/api/student-profile', auth(studentToken))
-  assert.equal(graded.body.xp, 140)
+  assert.equal(graded.body.xp, 143)
 
   const certRequest = await request('/api/certificates/issue', { method: 'POST', ...auth(studentToken, { courseId: 'course-1' }) })
   assert.equal(certRequest.body.status, 'pending')

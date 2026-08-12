@@ -12,6 +12,7 @@ export interface SessionUser {
 }
 
 const SESSION_DURATION_SECONDS = 8 * 60 * 60
+const ASSET_TOKEN_DURATION_SECONDS = 15 * 60
 const configuredSecret = process.env.SKILLUP_SESSION_SECRET
 
 if (process.env.NODE_ENV === 'production' && (!configuredSecret || configuredSecret.length < 32)) {
@@ -27,6 +28,24 @@ function sign(payload: string) {
 export function createSessionToken(user: Omit<SessionUser, 'exp'>) {
   const body = Buffer.from(JSON.stringify({ ...user, exp: Math.floor(Date.now() / 1000) + SESSION_DURATION_SECONDS })).toString('base64url')
   return `${body}.${sign(body)}`
+}
+
+export function createAssetToken(assetId: string, userId: string) {
+  const body = Buffer.from(JSON.stringify({ assetId, userId, exp: Math.floor(Date.now() / 1000) + ASSET_TOKEN_DURATION_SECONDS })).toString('base64url')
+  return `${body}.${sign(`asset:${body}`)}`
+}
+
+export function verifyAssetToken(token: string, assetId: string) {
+  const [body, supplied] = token.split('.')
+  if (!body || !supplied) return null
+  const expected = sign(`asset:${body}`)
+  if (expected.length !== supplied.length || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))) return null
+  try {
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as { assetId: string; userId: string; exp: number }
+    return payload.assetId === assetId && payload.userId && payload.exp >= Math.floor(Date.now() / 1000) ? payload : null
+  } catch {
+    return null
+  }
 }
 
 export function readSession(req: Request): SessionUser | null {

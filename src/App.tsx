@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-import Roadmap from './components/Roadmap';
-import ScrollServices from './components/ScrollServices';
 import ProjectShowcase from './components/ProjectShowcase';
 import CoursesList from './components/CoursesList';
 import Dashboard from './components/Dashboard';
@@ -11,6 +9,7 @@ import Articles from './components/Articles';
 import Footer from './components/Footer';
 import TrialAssessment from './components/TrialAssessment';
 import CertificateVerify from './components/CertificateVerify';
+import Testimonials from './components/Testimonials';
 import { AuthUser, UserRole } from './types';
 
 const authUserKey = 'skillup_auth_user';
@@ -65,16 +64,7 @@ export default function App() {
             {/* 1. Hero & Consultation phone input */}
             <Hero />
 
-            {/* 2. Interactive Island Roadmap */}
-            <Roadmap />
-
-            {/* 3. The 3 Scroll Services (AI Robot, Racing Car, Negotiator) */}
-            <ScrollServices />
-
-            {/* 4. Student Projects Gallery & Scratch iframe modal players */}
-            <ProjectShowcase />
-
-            {/* 5. Courses Teaser Grid */}
+            {/* مسیرهای اصلی بدون شلوغی بصری */}
             <CoursesList 
               onUnlockCourse={handleUnlockCourse} 
               unlockedCourses={unlockedCourses} 
@@ -83,6 +73,10 @@ export default function App() {
             />
 
             <TrialAssessment goToCourses={() => setCurrentTab('courses')} />
+
+            <ProjectShowcase />
+
+            <Testimonials />
 
             {/* 6. Footer is appended automatically */}
           </div>

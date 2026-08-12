@@ -18,6 +18,7 @@ export interface Course {
   nextSessionAt?: string;
   scheduleText?: string;
   isActive?: boolean;
+  sessionCount?: number;
 }
 
 export interface StudentProject {
@@ -71,6 +72,7 @@ export interface StudentProfile {
   xp: number;
   level: number;
   completedVideos?: string[];
+  completedSessions?: string[];
   completedQuizzes?: string[];
   unlockedRewards?: string[];
   purchasedCourses?: string[];
@@ -79,6 +81,42 @@ export interface StudentProfile {
   progress?: number;
   tier?: 'Starter' | 'Skiller' | 'Skill Master';
   xpLedger?: Array<{ delta: number; eventType: string; reason?: string; createdAt: string }>;
+}
+
+export type SessionAssetKind = 'video' | 'pdf' | 'zip' | 'image' | 'excel';
+
+export interface SessionAsset {
+  id: string;
+  kind: SessionAssetKind;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  externalUrl?: string;
+}
+
+export interface LearningSession {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string;
+  orderIndex: number;
+  xpReward: number;
+  durationSeconds: number;
+  isPublished: boolean;
+  assets: SessionAsset[];
+  progress?: { currentTime: number; watchedSeconds: number; watchedPercent: number; completed: boolean };
+}
+
+export interface SiteMessage {
+  id: string;
+  userId?: string;
+  name: string;
+  body: string;
+  rating: number;
+  status?: 'pending' | 'approved' | 'rejected';
+  adminReply?: string;
+  featured?: boolean;
+  createdAt: string;
 }
 
 export type PaymentStatus = 'pending' | 'approved' | 'rejected';

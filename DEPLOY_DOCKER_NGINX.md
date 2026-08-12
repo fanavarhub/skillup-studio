@@ -106,13 +106,13 @@ certbot --nginx -d skill-up.ir -d www.skill-up.ir
 cd ~/public/skillup-app
 
 mkdir -p ~/backups/skillup
-cp data/skillup-studio.sqlite \
-  ~/backups/skillup/skillup-studio-$(date +%F-%H%M).sqlite
+tar -czf ~/backups/skillup/skillup-data-$(date +%F-%H%M).tar.gz data
 
 git pull --ff-only origin main
 docker compose up -d --build
 docker compose ps
 curl -fsS http://127.0.0.1:4050/api/health
+nginx -t && systemctl reload nginx
 ```
 
 مشاهده لاگ‌ها:

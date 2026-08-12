@@ -98,7 +98,7 @@ export default function LearningHub() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <Panel title="لیگ هفتگی" icon={<Trophy className="w-5 h-5 text-amber-500" />}>
-          <p className="text-xs text-slate-500 mb-4">لیگ هر شنبه ریست می‌شود. حساب‌های نمایشی برای شفافیت با برچسب مشخص شده‌اند.</p>
+          <p className="text-xs text-slate-500 mb-4">لیگ هر شنبه ریست می‌شود و فقط هنرجوهای واقعی در رتبه‌بندی عمومی دیده می‌شوند.</p>
           <div className="space-y-2">
             {leaders.map((item) => (
               <div key={item.userId} className="flex items-center justify-between rounded-2xl bg-slate-50 border border-slate-100 p-3">

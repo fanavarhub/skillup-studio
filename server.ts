@@ -8,6 +8,7 @@ import { seedCourses, seedProjects } from './src/data'
 import type { ConsultationStatus, Course, PaymentRequest, PaymentStatus, ProjectStatus, StudentProject } from './src/types'
 import { createSessionToken, readSession, requireAdminSession, sessionDurationMs } from './auth'
 import { mountPlatformRoutes } from './platform'
+import { mountLearningRoutes } from './learning'
 
 const app = express()
 const PORT = Number(process.env.PORT || 3000)
@@ -381,6 +382,7 @@ function seedDatabase() {
 
 seedDatabase()
 mountPlatformRoutes(app, db)
+mountLearningRoutes(app, db)
 
 const ipHits = new Map<string, number[]>()
 const authHits = new Map<string, number[]>()

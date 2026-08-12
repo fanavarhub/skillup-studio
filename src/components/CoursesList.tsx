@@ -184,7 +184,7 @@ export default function CoursesList({ onUnlockCourse, unlockedCourses, setCurren
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-gray-500">
                           <Layers className="w-4 h-4 text-indigo-500" />
-                          <span className="font-sans font-medium">{course.offlineVideos?.length || 0} جلسه</span>
+                          <span className="font-sans font-medium">{course.sessionCount ?? course.offlineVideos?.length ?? 0} جلسه</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-gray-500">
                           <CalendarDays className="w-4 h-4 text-emerald-500" />

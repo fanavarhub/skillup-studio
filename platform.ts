@@ -114,11 +114,22 @@ function generateNotifications(db: DatabaseSync, userId: string) {
   const incomplete = db.prepare(`SELECT course_id, video_id FROM video_progress
     WHERE user_id = ? AND watched_percent > 0 AND watched_percent < 75 AND updated_at < ?`).all(userId, new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) as any[]
   for (const item of incomplete) add(`video:${item.course_id}:${item.video_id}`, 'incomplete_video', 'ویدئوی نیمه‌تمام', 'یک ویدئوی آموزشی را نیمه‌کاره گذاشتی؛ ادامه‌اش بده تا امتیازش ثبت شود.')
+  const incompleteSessions = db.prepare(`SELECT sp.session_id, s.title FROM session_progress sp
+    JOIN course_sessions s ON s.id = sp.session_id
+    WHERE sp.user_id = ? AND sp.watched_seconds > 0 AND sp.completed_at IS NULL AND sp.updated_at < ?`
+  ).all(userId, new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) as Array<{ session_id: string; title: string }>
+  for (const item of incompleteSessions) add(`session-incomplete:${item.session_id}`, 'incomplete_video', 'یک جلسه نیمه‌تمام مانده', `ویدئوی «${item.title}» را ادامه بده؛ پیشرفتت از همان‌جا ذخیره شده است.`)
   const overdue = db.prepare(`SELECT a.id, a.title FROM project_assignments a
     WHERE a.due_at < ? AND a.course_id IN (SELECT value FROM json_each(?))
     AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.assignment_id = a.id AND p.user_id = ?)`
   ).all(now(), profile.purchased_courses, userId) as any[]
   for (const item of overdue) add(`overdue:${item.id}`, 'overdue_project', 'مهلت پروژه گذشته است', `پروژه «${item.title}» هنوز ارسال نشده؛ اگر نیاز به کمک داری در باشگاه سؤال بپرس.`)
+}
+
+function notifyUser(db: DatabaseSync, userId: string, key: string, type: string, title: string, body: string) {
+  db.prepare(`INSERT OR IGNORE INTO notifications
+    (id, user_id, unique_key, type, title, body, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(uid('notice'), userId, key, type, title, body, now())
 }
 
 function seedBots(db: DatabaseSync) {
@@ -155,7 +166,7 @@ function courseDto(row: any, includePrivate = false) {
     id: row.id, title: row.title, description: row.description, level: row.level, price: row.price,
     duration: row.duration, coverImage: row.cover_image, instructor: row.instructor || undefined,
     capacity: row.capacity ?? undefined, enrolled: row.enrolled ?? 0, nextSessionAt: row.next_session_at || undefined,
-    isActive: Boolean(row.is_active), offlineVideos: videos,
+    isActive: Boolean(row.is_active), offlineVideos: videos, sessionCount: Number(row.session_count || videos.length),
     onlineMeetingLink: includePrivate ? row.online_meeting_link : '',
   }
 }
@@ -278,7 +289,7 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     const isAdmin = auth?.role === 'admin'
     let purchased: string[] = []
     if (auth?.role === 'student') purchased = json<string[]>(profileRow(db, auth).purchased_courses, [])
-    const rows = db.prepare(`SELECT * FROM courses ${isAdmin ? '' : 'WHERE is_active = 1'} ORDER BY created_at`).all() as any[]
+    const rows = db.prepare(`SELECT c.*, (SELECT COUNT(*) FROM course_sessions s WHERE s.course_id = c.id AND s.is_published = 1) AS session_count FROM courses c ${isAdmin ? '' : 'WHERE c.is_active = 1'} ORDER BY c.created_at`).all() as any[]
     res.json(rows.map((row) => courseDto(row, Boolean(isAdmin || purchased.includes(row.id)))))
   })
 
@@ -289,8 +300,9 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     db.prepare('UPDATE student_profiles SET last_activity_at = ?, display_name = ? WHERE user_id = ?').run(now(), auth.name, auth.id)
     const ledger = db.prepare('SELECT delta, event_type AS eventType, reason, created_at AS createdAt FROM xp_ledger WHERE user_id = ? ORDER BY created_at DESC LIMIT 30').all(auth.id)
     const completedVideos = (db.prepare('SELECT video_id FROM video_progress WHERE user_id = ? AND watched_percent >= 75').all(auth.id) as Array<{ video_id: string }>).map((item) => item.video_id)
+    const completedSessions = (db.prepare('SELECT session_id FROM session_progress WHERE user_id = ? AND completed_at IS NOT NULL').all(auth.id) as Array<{ session_id: string }>).map((item) => item.session_id)
     const completedQuizzes = (db.prepare('SELECT DISTINCT question_id FROM daily_answers WHERE user_id = ? AND is_correct = 1').all(auth.id) as Array<{ question_id: string }>).map((item) => item.question_id)
-    res.json({ ...publicProfile(row), completedVideos, completedQuizzes, unlockedRewards: [], xpLedger: ledger })
+    res.json({ ...publicProfile(row), completedVideos, completedSessions, completedQuizzes, unlockedRewards: [], xpLedger: ledger })
   })
 
   app.post('/api/student-profile/action', requireStudent, (req, res) => {
@@ -299,14 +311,7 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     const target = text(req.body.targetId, 150)
     let result = { awarded: 0 }
     if (action === 'watch_video') {
-      const courseId = text(req.body.courseId, 120)
-      const percent = Math.max(0, Math.min(100, Number(req.body.watchedPercent || 0)))
-      const seconds = Math.max(0, Math.floor(Number(req.body.watchSeconds || 0)))
-      db.prepare(`INSERT INTO video_progress (user_id, course_id, video_id, watched_percent, watch_seconds, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(user_id, course_id, video_id) DO UPDATE SET
-        watched_percent = MAX(watched_percent, excluded.watched_percent), watch_seconds = MAX(watch_seconds, excluded.watch_seconds), updated_at = excluded.updated_at`
-      ).run(auth.id, courseId, target, percent, seconds, now())
-      if (percent >= 75) result = awardXp(db, auth.id, 10, 'watch_video', `${courseId}:${target}`, 'مشاهده حداقل ۷۵٪ ویدئو')
+      return res.status(410).json({ error: 'ثبت دستی مشاهده غیرفعال شده است. پیشرفت هنگام پخش ویدئو به‌صورت خودکار ثبت می‌شود.' })
     }
     const row = profileRow(db, auth)
     res.json({ success: true, xpAwarded: result.awarded, profile: publicProfile(row) })
@@ -366,6 +371,7 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
       db.prepare('UPDATE projects SET status = ?, featured = ?, admin_notes = ?, rubric_json = ?, score_awarded = ?, updated_at = ? WHERE id = ?')
         .run(status, req.body.featured === undefined ? row.featured : req.body.featured ? 1 : 0, text(req.body.adminNotes, 1600) || row.admin_notes, req.body.rubric ? JSON.stringify(req.body.rubric) : row.rubric_json, score, now(), row.id)
       if (row.user_id && delta) awardXp(db, row.user_id, delta, 'project_grade_adjustment', uid(`grade-${row.id}`), 'امتیاز ارزیابی پروژه', 'admin')
+      if (row.user_id) notifyUser(db, row.user_id, `project-review:${row.id}:${row.submission_version}:${status}`, 'project_review', status === 'approved' ? 'پروژه‌ات تأیید شد 🎉' : 'پروژه نیاز به اصلاح دارد', text(req.body.adminNotes, 1600) || (status === 'approved' ? `مربی پروژه را تأیید کرد و ${score} امتیاز ثبت شد.` : 'بازخورد مربی را ببین و نسخه اصلاح‌شده را دوباره بفرست.'))
       return res.json(projectDto(db.prepare('SELECT * FROM projects WHERE id = ?').get(row.id), true))
     }
     if (row.user_id !== auth.id) return res.status(403).json({ error: fa.forbidden })
@@ -435,6 +441,7 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
       const courses = new Set(json<string[]>(row?.purchased_courses, [])); courses.add(payment.course_id)
       db.prepare('UPDATE student_profiles SET purchased_courses = ?, updated_at = ? WHERE user_id = ?').run(JSON.stringify([...courses]), now(), payment.user_id)
     }
+    if (payment.user_id) notifyUser(db, payment.user_id, `payment:${payment.id}:${status}`, 'payment_status', status === 'approved' ? 'دوره برایت فعال شد' : 'پرداخت نیاز به بررسی دارد', status === 'approved' ? `دوره «${payment.course_title}» به کلاس‌های تو اضافه شد.` : (text(req.body.adminNotes, 800) || 'اطلاعات پرداخت تأیید نشد؛ لطفاً با پشتیبانی تماس بگیر.'))
     res.json({ success: true })
   })
 
@@ -471,7 +478,7 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     const start = weekStart()
     const rows = db.prepare(`SELECT p.user_id, p.display_name, p.is_bot, p.public_label, COALESCE(SUM(x.delta), 0) weekly_xp
       FROM student_profiles p LEFT JOIN xp_ledger x ON x.user_id = p.user_id AND x.created_at >= ?
-      WHERE p.user_id <> 'admin-profile'
+      WHERE p.user_id <> 'admin-profile' AND p.is_bot = 0
       GROUP BY p.user_id ORDER BY weekly_xp DESC, p.display_name LIMIT 50`).all(`${start}T00:00:00.000Z`) as any[]
     const mapped = rows.map((row, index) => ({ rank: index + 1, userId: row.user_id, name: row.display_name, weeklyXp: row.weekly_xp, isBot: Boolean(row.is_bot), publicLabel: row.public_label || undefined }))
     const auth = session(req)
@@ -577,6 +584,7 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     const request = db.prepare('SELECT * FROM certificate_requests WHERE id = ?').get(req.params.id) as any
     if (!request) return res.status(404).json({ error: fa.notFound })
     db.prepare('UPDATE certificate_requests SET status = ?, admin_note = ?, updated_at = ? WHERE id = ?').run(status, text(req.body.adminNote, 1000), now(), request.id)
+    notifyUser(db, request.user_id, `certificate:${request.id}:${status}`, 'certificate_status', status === 'approved' ? 'گواهینامه صادر شد' : 'درخواست گواهینامه نیاز به اصلاح دارد', text(req.body.adminNote, 1000) || (status === 'approved' ? 'گواهینامه و QR اعتبارسنجی در گذرنامه مهارتی شما آماده است.' : 'توضیحات مدیر را بررسی کنید.'))
     if (status === 'approved') {
       const profile = db.prepare('SELECT display_name FROM student_profiles WHERE user_id = ?').get(request.user_id) as any
       const course = db.prepare('SELECT title FROM courses WHERE id = ?').get(request.course_id) as any
@@ -626,23 +634,23 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
   app.get('/api/admin/learning-dashboard', requireAdminSession, (_req, res) => {
     advanceBots(db)
     const students = db.prepare(`SELECT p.user_id AS userId, p.display_name AS name, p.xp, p.is_bot AS isBot, p.public_label AS publicLabel,
-      COALESCE(SUM(v.watch_seconds), 0) AS watchSeconds,
-      COALESCE(SUM(CASE WHEN v.watched_percent >= 75 THEN 1 ELSE 0 END), 0) AS completedVideos,
+      COALESCE((SELECT SUM(sp.watched_seconds) FROM session_progress sp WHERE sp.user_id = p.user_id), 0) + COALESCE((SELECT SUM(vp.watch_seconds) FROM video_progress vp WHERE vp.user_id = p.user_id), 0) AS watchSeconds,
+      (SELECT COUNT(*) FROM session_progress sp WHERE sp.user_id = p.user_id AND sp.completed_at IS NOT NULL) + (SELECT COUNT(*) FROM video_progress vp WHERE vp.user_id = p.user_id AND vp.watched_percent >= 75) AS completedVideos,
       (SELECT COUNT(*) FROM daily_answers a WHERE a.user_id = p.user_id) AS answers,
       (SELECT COUNT(*) FROM projects pr WHERE pr.user_id = p.user_id) AS projects,
       EXISTS(SELECT 1 FROM blocked_users b WHERE b.user_id = p.user_id) AS blocked,
       p.last_activity_at AS lastActivityAt
-      FROM student_profiles p LEFT JOIN video_progress v ON v.user_id = p.user_id
+      FROM student_profiles p
       WHERE p.user_id <> 'admin-profile'
       GROUP BY p.user_id ORDER BY p.is_bot, p.display_name`).all() as any[]
     res.json({ summary: { students: students.filter((s) => !s.isBot).length, demoAccounts: students.filter((s) => s.isBot).length, totalWatchSeconds: students.reduce((sum, s) => sum + Number(s.watchSeconds), 0), submittedProjects: students.reduce((sum, s) => sum + Number(s.projects), 0) }, students: students.map((s) => ({ ...s, level: levelForXp(s.xp), isBot: Boolean(s.isBot) })), botActivities: db.prepare('SELECT * FROM bot_activity_log ORDER BY created_at DESC LIMIT 50').all() })
   })
 
   app.get('/api/admin/learning-dashboard.csv', requireAdminSession, (_req, res) => {
-    const rows = db.prepare(`SELECT p.display_name, p.xp, p.is_bot, COALESCE(SUM(v.watch_seconds),0) watch_seconds,
+    const rows = db.prepare(`SELECT p.display_name, p.xp, p.is_bot, COALESCE((SELECT SUM(sp.watched_seconds) FROM session_progress sp WHERE sp.user_id=p.user_id),0) + COALESCE((SELECT SUM(vp.watch_seconds) FROM video_progress vp WHERE vp.user_id=p.user_id),0) watch_seconds,
       (SELECT COUNT(*) FROM daily_answers a WHERE a.user_id=p.user_id) answers,
       (SELECT COUNT(*) FROM projects pr WHERE pr.user_id=p.user_id) projects
-      FROM student_profiles p LEFT JOIN video_progress v ON v.user_id=p.user_id WHERE p.user_id <> 'admin-profile' GROUP BY p.user_id ORDER BY p.display_name`).all() as any[]
+      FROM student_profiles p WHERE p.user_id <> 'admin-profile' GROUP BY p.user_id ORDER BY p.display_name`).all() as any[]
     const esc = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`
     const lines = [['نام', 'نوع حساب', 'XP', 'Level', 'زمان مشاهده (ثانیه)', 'پاسخ‌ها', 'پروژه‌ها'].map(esc).join(',')]
     rows.forEach((row) => lines.push([row.display_name, row.is_bot ? 'نمایشی/ربات' : 'واقعی', row.xp, levelForXp(row.xp), row.watch_seconds, row.answers, row.projects].map(esc).join(',')))
