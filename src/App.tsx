@@ -14,10 +14,11 @@ import FreeScratchRegistration from './components/FreeScratchRegistration';
 import { AuthUser, UserRole } from './types';
 
 const authUserKey = 'skillup_auth_user';
+const tabFromPath = () => window.location.pathname.replace(/\/+$/, '') === '/signup' ? 'signup' : 'home';
 
 export default function App() {
   const certificateCode = new URLSearchParams(window.location.search).get('certificate');
-  const [currentTab, setCurrentTab] = useState<string>('home');
+  const [currentTab, setCurrentTab] = useState<string>(tabFromPath);
   const [userRole, setUserRole] = useState<UserRole>('guest');
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
     try {
@@ -38,6 +39,19 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentTab]);
+
+  useEffect(() => {
+    const onHistoryChange = () => setCurrentTab(tabFromPath());
+    window.addEventListener('popstate', onHistoryChange);
+    return () => window.removeEventListener('popstate', onHistoryChange);
+  }, []);
+
+  useEffect(() => {
+    if (certificateCode) return;
+    const onSignupPath = window.location.pathname.replace(/\/+$/, '') === '/signup';
+    if (currentTab === 'signup' && !onSignupPath) window.history.pushState({}, '', '/signup');
+    if (currentTab !== 'signup' && onSignupPath) window.history.pushState({}, '', '/');
+  }, [certificateCode, currentTab]);
 
   useEffect(() => {
     if (currentUser) setUserRole(currentUser.role);

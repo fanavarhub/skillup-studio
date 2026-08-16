@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode, useState } from 'react';
 import { motion } from 'motion/react';
-import { Check, CheckCircle2, Gift, Heart, Loader2, Phone, Rocket, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { Check, CheckCircle2, Copy, Gift, Heart, Link2, Loader2, Phone, Rocket, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { isIranPhone, normalizePhone } from '../api';
 
 const ages = Array.from({ length: 17 }, (_, index) => index + 6);
@@ -17,8 +17,27 @@ export default function FreeScratchRegistration() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
+  const registrationUrl = `${window.location.origin}/signup`;
 
   const update = (key: keyof typeof form, value: string | boolean) => setForm((current) => ({ ...current, [key]: value }));
+
+  const copyRegistrationLink = async () => {
+    try {
+      await navigator.clipboard.writeText(registrationUrl);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = registrationUrl;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+    }
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 1800);
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -57,6 +76,11 @@ export default function FreeScratchRegistration() {
         <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-black text-cyan-50"><Sparkles className="h-4 w-4 text-amber-300" />شروع یک ماجراجویی تازه</p>
         <h1 className="mt-4 text-2xl font-black leading-10 sm:text-4xl">🎁 ثبت‌نام دوره رایگان مقدماتی اسکرچ</h1>
         <p className="mx-auto mt-4 max-w-xl text-sm font-medium leading-8 text-indigo-50 sm:text-base">سلام و خوش آمدید 🌱🚀<br />لطفاً اطلاعات زیر را تکمیل کنید تا ثبت‌نام شما نهایی شود و لینک ورود به دوره برایتان ارسال گردد. 💻✨</p>
+        <div className="mx-auto mt-5 flex max-w-md items-center gap-2 rounded-2xl border border-white/20 bg-white/15 p-2 text-right backdrop-blur">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/15"><Link2 className="h-5 w-5" /></span>
+          <div className="min-w-0 flex-1"><span className="block text-[10px] font-bold text-indigo-100">لینک مستقیم ثبت‌نام</span><code dir="ltr" className="block truncate text-xs font-black text-white">{registrationUrl}</code></div>
+          <button type="button" onClick={copyRegistrationLink} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-indigo-700 shadow-lg" title="کپی لینک مستقیم" aria-label="کپی لینک مستقیم ثبت‌نام">{linkCopied ? <Check className="h-5 w-5 text-emerald-600" /> : <Copy className="h-5 w-5" />}</button>
+        </div>
       </motion.header>
 
       {success ? <SuccessCard onAgain={() => { setForm(initialForm); setSuccess(false); }} /> :

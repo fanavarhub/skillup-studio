@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { spawn } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { cpSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -31,6 +31,7 @@ const auth = (token, body) => ({
 })
 
 before(async () => {
+  cpSync(path.join(projectDir, 'dist'), path.join(tempDir, 'dist'), { recursive: true })
   server = spawn(process.execPath, [path.join(projectDir, 'dist', 'server.cjs')], {
     cwd: tempDir,
     env: {
@@ -71,6 +72,12 @@ test('health endpoint does not expose database path', async () => {
   assert.equal(response.status, 200)
   assert.equal(body.ok, true)
   assert.equal('dbPath' in body, false)
+})
+
+test('direct signup URL serves the registration application', async () => {
+  const { response, body } = await request('/signup')
+  assert.equal(response.status, 200)
+  assert.match(body, /اسکیل آپ/)
 })
 
 test('student resources require a signed session', async () => {
