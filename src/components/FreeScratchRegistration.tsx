@@ -11,16 +11,47 @@ const experiences = ['کاملاً مبتدی هستم', 'کمی آشنایی د
 const initialForm = {
   fullName: '', phone: '', age: '', province: '', educationGrade: '', relation: '', bannerShared: false, programmingExperience: '',
 };
+type FormState = typeof initialForm;
+type FieldName = keyof FormState;
+type FieldErrors = Partial<Record<FieldName, string>>;
+
+function validateForm(form: FormState): FieldErrors {
+  const errors: FieldErrors = {};
+  if (form.fullName.trim().length < 3 || form.fullName.trim().split(/\s+/).length < 2) errors.fullName = 'نام و نام خانوادگی را کامل وارد کنید.';
+  if (!form.phone.trim()) errors.phone = 'شماره تماس را وارد کنید.';
+  else if (!isIranPhone(form.phone)) errors.phone = 'شماره تماس باید ۱۱ رقم باشد و با ۰۹ شروع شود.';
+  const age = Number(form.age);
+  if (!Number.isInteger(age) || age < 6 || age > 22) errors.age = 'سن شرکت‌کننده را بین ۶ تا ۲۲ سال انتخاب کنید.';
+  if (form.province.trim().length < 2) errors.province = 'استان محل زندگی را وارد کنید.';
+  if (!grades.includes(form.educationGrade)) errors.educationGrade = 'پایه تحصیلی را انتخاب کنید.';
+  if (!relations.includes(form.relation as typeof relations[number])) errors.relation = 'مشخص کنید دوره برای چه کسی است.';
+  if (!form.bannerShared) errors.bannerShared = 'برای ادامه، ارسال بنر برای حداقل دو نفر را تأیید کنید.';
+  if (!experiences.includes(form.programmingExperience as typeof experiences[number])) errors.programmingExperience = 'میزان آشنایی با برنامه‌نویسی را انتخاب کنید.';
+  return errors;
+}
 
 export default function FreeScratchRegistration() {
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [linkCopied, setLinkCopied] = useState(false);
   const registrationUrl = `${window.location.origin}/signup`;
 
-  const update = (key: keyof typeof form, value: string | boolean) => setForm((current) => ({ ...current, [key]: value }));
+  const update = (key: FieldName, value: string | boolean) => {
+    const nextForm = { ...form, [key]: value };
+    setForm(nextForm);
+    setFieldErrors((currentErrors) => {
+      if (!currentErrors[key]) return currentErrors;
+      const nextError = validateForm(nextForm)[key];
+      const nextErrors = { ...currentErrors };
+      if (nextError) nextErrors[key] = nextError;
+      else delete nextErrors[key];
+      return nextErrors;
+    });
+    setError('');
+  };
 
   const copyRegistrationLink = async () => {
     try {
@@ -42,19 +73,25 @@ export default function FreeScratchRegistration() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError('');
-    if (!isIranPhone(form.phone)) {
-      setError('شماره تماس را به‌صورت ۱۱ رقمی و با ۰۹ وارد کنید.');
+    const normalizedForm = { ...form, fullName: form.fullName.trim(), phone: normalizePhone(form.phone), province: form.province.trim() };
+    const validationErrors = validateForm(normalizedForm);
+    setFieldErrors(validationErrors);
+    if (Object.keys(validationErrors).length) {
+      setError('لطفاً موارد مشخص‌شده را کامل یا اصلاح کنید.');
+      window.requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
       return;
     }
+    setForm(normalizedForm);
     setSubmitting(true);
     try {
       const response = await fetch('/api/free-course-registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, phone: normalizePhone(form.phone), age: Number(form.age) }),
+        body: JSON.stringify({ ...normalizedForm, age: Number(normalizedForm.age) }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'ثبت اطلاعات انجام نشد.');
+      setFieldErrors({});
       setSuccess(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (reason) {
@@ -83,56 +120,57 @@ export default function FreeScratchRegistration() {
         </div>
       </motion.header>
 
-      {success ? <SuccessCard onAgain={() => { setForm(initialForm); setSuccess(false); }} /> :
-        <motion.form data-testid="free-scratch-form" onSubmit={submit} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .1 }} className="relative -mt-2 space-y-4 rounded-b-[34px] rounded-t-[22px] border-2 border-white bg-white/90 p-4 shadow-[0_20px_55px_rgba(15,23,42,.08)] backdrop-blur sm:p-8">
+      {success ? <SuccessCard onAgain={() => { setForm(initialForm); setFieldErrors({}); setError(''); setSuccess(false); }} /> :
+        <motion.form noValidate data-testid="free-scratch-form" onSubmit={submit} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .1 }} className="relative -mt-2 space-y-4 rounded-b-[34px] rounded-t-[22px] border-2 border-white bg-white/90 p-4 shadow-[0_20px_55px_rgba(15,23,42,.08)] backdrop-blur sm:p-8">
           <div className="mb-1 flex items-center justify-between gap-3 rounded-2xl bg-emerald-50 p-3 text-xs font-bold text-emerald-800">
             <span className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" />اطلاعات شما فقط برای هماهنگی دوره استفاده می‌شود.</span>
             <span className="shrink-0 rounded-full bg-white px-3 py-1">کمتر از ۲ دقیقه</span>
           </div>
 
-          <Question number="۱" title="نام و نام خانوادگی" icon={<UserRound className="h-5 w-5" />}>
-            <input required minLength={3} value={form.fullName} onChange={(event) => update('fullName', event.target.value)} className="form-field" placeholder="مثلاً آراد محمدی" autoComplete="name" />
+          {error && <motion.p data-testid="form-error-summary" role="alert" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm font-bold leading-6 text-rose-700">{error}</motion.p>}
+
+          <Question number="۱" title="نام و نام خانوادگی" icon={<UserRound className="h-5 w-5" />} error={fieldErrors.fullName}>
+            <input id="free-full-name" aria-invalid={Boolean(fieldErrors.fullName)} required minLength={3} value={form.fullName} onChange={(event) => update('fullName', event.target.value)} className="form-field" placeholder="مثلاً آراد محمدی" autoComplete="name" />
           </Question>
 
-          <Question number="۲" title="شماره تماس (والدین یا شرکت‌کننده دوره)" icon={<Phone className="h-5 w-5" />}>
-            <input required inputMode="tel" value={form.phone} onChange={(event) => update('phone', event.target.value)} className="form-field text-left" placeholder="09123456789" autoComplete="tel" dir="ltr" />
+          <Question number="۲" title="شماره تماس (والدین یا شرکت‌کننده دوره)" icon={<Phone className="h-5 w-5" />} error={fieldErrors.phone}>
+            <input id="free-phone" aria-invalid={Boolean(fieldErrors.phone)} required inputMode="tel" value={form.phone} onChange={(event) => update('phone', event.target.value)} className="form-field text-left" placeholder="09123456789" autoComplete="tel" dir="ltr" />
             <p className="mt-2 text-[11px] leading-5 text-slate-400">مثال: شماره‌ای که اطلاع‌رسانی‌ها و لینک دوره را دریافت می‌کند</p>
           </Question>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Question number="۳" title="سن شرکت‌کننده در دوره">
-              <select required value={form.age} onChange={(event) => update('age', event.target.value)} className="form-field">
+            <Question number="۳" title="سن شرکت‌کننده در دوره" error={fieldErrors.age}>
+              <select aria-invalid={Boolean(fieldErrors.age)} required value={form.age} onChange={(event) => update('age', event.target.value)} className="form-field">
                 <option value="">انتخاب سن</option>{ages.map((age) => <option value={age} key={age}>{age} سال</option>)}
               </select>
             </Question>
-            <Question number="۴" title="استان محل زندگی">
-              <input required minLength={2} value={form.province} onChange={(event) => update('province', event.target.value)} className="form-field" placeholder="مثلاً تهران" />
+            <Question number="۴" title="استان محل زندگی" error={fieldErrors.province}>
+              <input aria-invalid={Boolean(fieldErrors.province)} required minLength={2} value={form.province} onChange={(event) => update('province', event.target.value)} className="form-field" placeholder="مثلاً تهران" />
             </Question>
           </div>
 
-          <Question number="۵" title="پایه تحصیلی در مهر ماه سال ۱۴۰۵">
-            <select required value={form.educationGrade} onChange={(event) => update('educationGrade', event.target.value)} className="form-field">
+          <Question number="۵" title="پایه تحصیلی در مهر ماه سال ۱۴۰۵" error={fieldErrors.educationGrade}>
+            <select aria-invalid={Boolean(fieldErrors.educationGrade)} required value={form.educationGrade} onChange={(event) => update('educationGrade', event.target.value)} className="form-field">
               <option value="">پایه تحصیلی را انتخاب کنید</option>{grades.map((grade) => <option value={grade} key={grade}>{grade}</option>)}
             </select>
           </Question>
 
-          <Question number="۶" title="این دوره برای چه کسی است؟">
-            <ChoiceGrid name="relation" choices={relations} value={form.relation} onChange={(value) => update('relation', value)} />
+          <Question number="۶" title="این دوره برای چه کسی است؟" error={fieldErrors.relation}>
+            <ChoiceGrid name="relation" choices={relations} value={form.relation} invalid={Boolean(fieldErrors.relation)} onChange={(value) => update('relation', value)} />
           </Question>
 
-          <Question number="۷" title="آیا بنر معرفی کانال را برای حداقل ۲ نفر ارسال کرده‌اید؟">
+          <Question number="۷" title="آیا بنر معرفی کانال را برای حداقل ۲ نفر ارسال کرده‌اید؟" error={fieldErrors.bannerShared}>
             <label className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition ${form.bannerShared ? 'border-emerald-400 bg-emerald-50 text-emerald-800' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-emerald-200'}`}>
-              <input required type="checkbox" checked={form.bannerShared} onChange={(event) => update('bannerShared', event.target.checked)} className="peer sr-only" />
+              <input aria-invalid={Boolean(fieldErrors.bannerShared)} required type="checkbox" checked={form.bannerShared} onChange={(event) => update('bannerShared', event.target.checked)} className="peer sr-only" />
               <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg border-2 ${form.bannerShared ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300 bg-white'}`}>{form.bannerShared && <Check className="h-5 w-5" />}</span>
               <b className="text-sm">بله، ارسال کردم ✅</b>
             </label>
           </Question>
 
-          <Question number="۸" title="میزان آشنایی با برنامه‌نویسی">
-            <ChoiceGrid name="experience" choices={experiences} value={form.programmingExperience} onChange={(value) => update('programmingExperience', value)} singleColumn />
+          <Question number="۸" title="میزان آشنایی با برنامه‌نویسی" error={fieldErrors.programmingExperience}>
+            <ChoiceGrid name="experience" choices={experiences} value={form.programmingExperience} invalid={Boolean(fieldErrors.programmingExperience)} onChange={(value) => update('programmingExperience', value)} singleColumn />
           </Question>
 
-          {error && <motion.p role="alert" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm font-bold leading-6 text-rose-700">{error}</motion.p>}
           <motion.button disabled={submitting} whileHover={{ y: -2 }} whileTap={{ scale: .98 }} className="flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-l from-emerald-500 via-teal-500 to-cyan-500 px-6 py-4 text-base font-black text-white shadow-xl shadow-emerald-200 transition disabled:cursor-wait disabled:opacity-70">
             {submitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Rocket className="h-6 w-6" />}{submitting ? 'در حال ثبت اطلاعات…' : 'ثبت‌نام و شروع ماجراجویی'}
           </motion.button>
@@ -141,17 +179,18 @@ export default function FreeScratchRegistration() {
   </div>;
 }
 
-function Question({ number, title, icon, children }: { number: string; title: string; icon?: ReactNode; children: ReactNode }) {
-  return <fieldset className="rounded-[24px] border border-slate-100 bg-white p-4 shadow-[0_6px_24px_rgba(15,23,42,.04)] sm:p-5">
+function Question({ number, title, icon, error, children }: { number: string; title: string; icon?: ReactNode; error?: string; children: ReactNode }) {
+  return <fieldset className={`rounded-[24px] border bg-white p-4 shadow-[0_6px_24px_rgba(15,23,42,.04)] transition sm:p-5 ${error ? 'border-rose-200 ring-2 ring-rose-100' : 'border-slate-100'}`}>
     <legend className="sr-only">{title}</legend>
     <div className="mb-3 flex items-center gap-2.5"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-violet-100 text-xs font-black text-violet-700">{number}</span>{icon && <span className="text-violet-500">{icon}</span>}<h2 className="text-sm font-black leading-6 text-slate-800 sm:text-base">{title}</h2></div>
     {children}
+    {error && <motion.p data-field-error="true" role="alert" initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} className="mt-2 flex items-center gap-1.5 text-xs font-bold leading-5 text-rose-600"><span aria-hidden>●</span>{error}</motion.p>}
   </fieldset>;
 }
 
-function ChoiceGrid<T extends string>({ name, choices, value, onChange, singleColumn = false }: { name: string; choices: readonly T[]; value: string; onChange: (value: T) => void; singleColumn?: boolean }) {
+function ChoiceGrid<T extends string>({ name, choices, value, invalid, onChange, singleColumn = false }: { name: string; choices: readonly T[]; value: string; invalid?: boolean; onChange: (value: T) => void; singleColumn?: boolean }) {
   return <div className={`grid gap-2 ${singleColumn ? '' : 'sm:grid-cols-2'}`}>{choices.map((choice) => <label key={choice} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border-2 px-4 py-3 text-sm font-bold transition ${value === choice ? 'border-violet-400 bg-violet-50 text-violet-800 shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-violet-200'}`}>
-    <input required type="radio" name={name} value={choice} checked={value === choice} onChange={() => onChange(choice)} className="sr-only" />
+    <input aria-invalid={invalid} required type="radio" name={name} value={choice} checked={value === choice} onChange={() => onChange(choice)} className="sr-only" />
     <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 ${value === choice ? 'border-violet-500 bg-violet-500 text-white' : 'border-slate-300 bg-white'}`}>{value === choice && <Check className="h-4 w-4" />}</span>{choice}
   </label>)}</div>;
 }
