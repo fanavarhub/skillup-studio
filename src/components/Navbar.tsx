@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthUser, UserRole } from '../types';
-import { BookOpen, ChevronDown, GraduationCap, Home, Images, LayoutDashboard, LogIn, LogOut, Menu, Newspaper, Pencil, Sparkles, UserRound, X } from 'lucide-react';
+import { BookOpen, ChevronDown, Gift, GraduationCap, Home, Images, LayoutDashboard, LogIn, LogOut, Menu, Newspaper, Pencil, Sparkles, UserRound, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { authenticatedFetch, studentTokenKey } from '../api';
 
@@ -37,6 +37,7 @@ export default function Navbar({ currentTab, setCurrentTab, userRole, setUserRol
     { id: 'courses', label: 'دوره‌های آموزشی' },
     { id: 'projects', label: 'پروژه‌های نوجوانان' },
     { id: 'articles', label: 'مجله اسکیل آپ' },
+    { id: 'signup', label: 'ثبت‌نام' },
   ];
 
   useEffect(() => {
@@ -152,6 +153,7 @@ export default function Navbar({ currentTab, setCurrentTab, userRole, setUserRol
     { id: 'courses', label: 'دوره‌ها', icon: BookOpen },
     { id: 'projects', label: 'پروژه‌ها', icon: Images },
     { id: 'articles', label: 'مجله', icon: Newspaper },
+    { id: 'signup', label: 'ثبت‌نام', icon: Gift },
   ];
 
   return <>
@@ -193,7 +195,7 @@ export default function Navbar({ currentTab, setCurrentTab, userRole, setUserRol
     </nav>
 
     <div className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-violet-100 bg-white/95 backdrop-blur-xl md:hidden" dir="rtl">
-      <div className="grid grid-cols-4 gap-1 px-2 pb-[calc(env(safe-area-inset-bottom)+.5rem)] pt-2">{mobileNavItems.map((item) => { const Icon = item.icon; return <button key={item.id} onClick={() => goToTab(item.id)} className={`flex h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[10px] font-black ${currentTab === item.id ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'text-slate-500'}`}><Icon className="h-5 w-5" />{item.label}</button>; })}</div>
+      <div className="grid grid-cols-5 gap-1 px-2 pb-[calc(env(safe-area-inset-bottom)+.5rem)] pt-2">{mobileNavItems.map((item) => { const Icon = item.icon; return <button key={item.id} onClick={() => goToTab(item.id)} className={`flex h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[10px] font-black ${currentTab === item.id ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'text-slate-500'}`}><Icon className="h-5 w-5" />{item.label}</button>; })}</div>
     </div>
 
     {authOpen && createPortal(<div className="fixed inset-0 z-[9999] grid place-items-center overflow-y-auto bg-slate-950/65 p-4 backdrop-blur-sm" dir="rtl" onClick={() => setAuthOpen(false)}>

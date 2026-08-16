@@ -152,3 +152,21 @@ export interface AuthUser {
   role: UserRole;
   avatar?: string;
 }
+
+export type FreeRegistrationStatus = 'pending' | 'account_created' | 'account_linked';
+
+export interface FreeCourseRegistration {
+  id: string;
+  fullName: string;
+  phone: string;
+  age: number;
+  province: string;
+  educationGrade: string;
+  relation: 'خودم' | 'فرزندم' | 'خواهر / برادر' | 'دوست یا آشنا';
+  bannerShared: boolean;
+  programmingExperience: 'کاملاً مبتدی هستم' | 'کمی آشنایی دارم' | 'قبلاً تجربه برنامه‌نویسی داشته‌ام';
+  status: FreeRegistrationStatus;
+  userId?: string;
+  createdAt: string;
+  updatedAt: string;
+}

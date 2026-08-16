@@ -13,8 +13,44 @@ const fa = {
 const now = () => new Date().toISOString()
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
 const text = (value: unknown, max = 1000) => String(value || '').trim().slice(0, max)
+const normalizePhone = (value: unknown) => {
+  const persian = '۰۱۲۳۴۵۶۷۸۹'
+  const arabic = '٠١٢٣٤٥٦٧٨٩'
+  return String(value || '')
+    .replace(/[۰-۹]/g, (digit) => String(persian.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String(arabic.indexOf(digit)))
+    .replace(/[\s-]/g, '')
+}
 const json = <T>(value: string | null | undefined, fallback: T): T => {
   try { return JSON.parse(value || '') as T } catch { return fallback }
+}
+
+function hashGeneratedPassword(password: string, salt = crypto.randomBytes(12).toString('hex')) {
+  return `${salt}:${crypto.scryptSync(password, salt, 32).toString('hex')}`
+}
+
+function generatedStudentPassword() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+  const part = (length: number) => Array.from({ length }, () => alphabet[crypto.randomInt(alphabet.length)]).join('')
+  return `SU-${part(5)}-${part(5)}`
+}
+
+function freeRegistrationDto(row: any) {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    phone: row.phone,
+    age: Number(row.age),
+    province: row.province,
+    educationGrade: row.education_grade,
+    relation: row.relation,
+    bannerShared: Boolean(row.banner_shared),
+    programmingExperience: row.programming_experience,
+    status: row.status,
+    userId: row.user_id || undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
 }
 
 function ensureColumn(db: DatabaseSync, table: string, column: string, definition: string) {
@@ -290,6 +326,14 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
       id TEXT PRIMARY KEY, name TEXT NOT NULL, phone TEXT NOT NULL, recommended_course_id TEXT,
       answers_json TEXT, status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS free_course_registrations (
+      id TEXT PRIMARY KEY, full_name TEXT NOT NULL, phone TEXT NOT NULL UNIQUE, age INTEGER NOT NULL,
+      province TEXT NOT NULL, education_grade TEXT NOT NULL, relation TEXT NOT NULL,
+      banner_shared INTEGER NOT NULL DEFAULT 0, programming_experience TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending', user_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_free_course_registrations_created
+      ON free_course_registrations(created_at DESC);
     CREATE TABLE IF NOT EXISTS bot_activity_log (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, slot_key TEXT NOT NULL, activity TEXT NOT NULL,
       xp_delta INTEGER NOT NULL, created_at TEXT NOT NULL, UNIQUE(user_id, slot_key)
@@ -671,6 +715,84 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     if (name && /^09\d{9}$/.test(phone)) db.prepare('INSERT INTO trial_bookings (id, name, phone, recommended_course_id, answers_json, created_at) VALUES (?, ?, ?, ?, ?, ?)')
       .run(uid('trial'), name, phone, recommended?.id || null, JSON.stringify(answers), now())
     res.json({ score, recommendedCourse: recommended, trialAvailable: true })
+  })
+
+  app.post('/api/free-course-registrations', (req, res) => {
+    const fullName = text(req.body.fullName, 120)
+    const phone = normalizePhone(req.body.phone)
+    const age = Math.floor(Number(req.body.age))
+    const province = text(req.body.province, 80)
+    const educationGrade = text(req.body.educationGrade, 80)
+    const relation = text(req.body.relation, 40)
+    const programmingExperience = text(req.body.programmingExperience, 80)
+    const grades = ['پیش‌دبستانی', 'اول ابتدایی', 'دوم ابتدایی', 'سوم ابتدایی', 'چهارم ابتدایی', 'پنجم ابتدایی', 'ششم ابتدایی', 'هفتم', 'هشتم', 'نهم', 'دهم', 'یازدهم', 'دوازدهم', 'مدرسه نمی‌روم', 'دانشگاه']
+    const relations = ['خودم', 'فرزندم', 'خواهر / برادر', 'دوست یا آشنا']
+    const experiences = ['کاملاً مبتدی هستم', 'کمی آشنایی دارم', 'قبلاً تجربه برنامه‌نویسی داشته‌ام']
+
+    if (fullName.length < 3) return res.status(400).json({ error: 'نام و نام خانوادگی را کامل وارد کنید.' })
+    if (!/^09\d{9}$/.test(phone)) return res.status(400).json({ error: 'شماره تماس معتبر وارد کنید.' })
+    if (!Number.isInteger(age) || age < 6 || age > 22) return res.status(400).json({ error: 'سن شرکت‌کننده باید بین ۶ تا ۲۲ سال باشد.' })
+    if (province.length < 2) return res.status(400).json({ error: 'استان محل زندگی را وارد کنید.' })
+    if (!grades.includes(educationGrade)) return res.status(400).json({ error: 'پایه تحصیلی معتبر انتخاب کنید.' })
+    if (!relations.includes(relation)) return res.status(400).json({ error: 'مشخص کنید دوره برای چه کسی است.' })
+    if (req.body.bannerShared !== true) return res.status(400).json({ error: 'برای نهایی شدن ثبت‌نام، ارسال بنر برای حداقل دو نفر را تأیید کنید.' })
+    if (!experiences.includes(programmingExperience)) return res.status(400).json({ error: 'میزان آشنایی با برنامه‌نویسی را انتخاب کنید.' })
+    if (db.prepare('SELECT id FROM free_course_registrations WHERE phone = ?').get(phone)) {
+      return res.status(409).json({ error: 'این شماره قبلاً برای دوره رایگان ثبت شده است.' })
+    }
+
+    const id = uid('free-registration')
+    const createdAt = now()
+    db.prepare(`INSERT INTO free_course_registrations
+      (id, full_name, phone, age, province, education_grade, relation, banner_shared, programming_experience, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, 'pending', ?, ?)`
+    ).run(id, fullName, phone, age, province, educationGrade, relation, programmingExperience, createdAt, createdAt)
+    res.status(201).json({ success: true, id, message: 'اطلاعات شما با موفقیت ثبت شد.' })
+  })
+
+  app.get('/api/admin/free-course-registrations', requireAdminSession, (_req, res) => {
+    const rows = db.prepare('SELECT * FROM free_course_registrations ORDER BY created_at DESC').all() as any[]
+    res.json(rows.map(freeRegistrationDto))
+  })
+
+  app.post('/api/admin/free-course-registrations/:id/create-account', requireAdminSession, (req, res) => {
+    const registration = db.prepare('SELECT * FROM free_course_registrations WHERE id = ?').get(req.params.id) as any
+    if (!registration) return res.status(404).json({ error: 'ثبت‌نام موردنظر پیدا نشد.' })
+    if (registration.user_id) return res.status(409).json({ error: 'حساب این ثبت‌نام قبلاً ساخته یا متصل شده است.' })
+
+    const existing = db.prepare('SELECT id, name, phone, role FROM users WHERE phone = ?').get(registration.phone) as any
+    if (existing) {
+      if (existing.role !== 'student') return res.status(409).json({ error: 'این شماره به یک حساب غیرهنرجو متصل است.' })
+      db.prepare("UPDATE free_course_registrations SET user_id = ?, status = 'account_linked', updated_at = ? WHERE id = ?")
+        .run(existing.id, now(), registration.id)
+      return res.json({ success: true, existingAccount: true, user: existing })
+    }
+
+    const userId = uid('user')
+    const password = generatedStudentPassword()
+    const createdAt = now()
+    db.exec('BEGIN')
+    try {
+      db.prepare(`INSERT INTO users (id, name, phone, password_hash, role, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'student', ?, ?)`
+      ).run(userId, registration.full_name, registration.phone, hashGeneratedPassword(password), createdAt, createdAt)
+      db.prepare(`INSERT INTO student_profiles
+        (user_id, display_name, xp, purchased_courses, is_bot, created_at, updated_at, last_activity_at)
+        VALUES (?, ?, 0, '[]', 0, ?, ?, ?)`
+      ).run(userId, registration.full_name, createdAt, createdAt, createdAt)
+      db.prepare("UPDATE free_course_registrations SET user_id = ?, status = 'account_created', updated_at = ? WHERE id = ?")
+        .run(userId, createdAt, registration.id)
+      db.exec('COMMIT')
+    } catch (error) {
+      db.exec('ROLLBACK')
+      throw error
+    }
+    res.status(201).json({
+      success: true,
+      existingAccount: false,
+      user: { id: userId, name: registration.full_name, phone: registration.phone, role: 'student' },
+      credentials: { username: registration.phone, password },
+    })
   })
 
   app.get('/api/admin/learning-dashboard', requireAdminSession, (_req, res) => {

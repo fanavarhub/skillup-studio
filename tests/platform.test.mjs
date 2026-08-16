@@ -16,6 +16,7 @@ let adminToken = ''
 let projectId = ''
 let sessionId = ''
 let sessionAssetId = ''
+let freeRegistrationId = ''
 
 async function request(route, options = {}) {
   const response = await fetch(`${base}${route}`, options)
@@ -98,6 +99,23 @@ test('register creates an isolated level-one profile', async () => {
   assert.equal(dailyBeforeEnrollment.body.mission, null)
 })
 
+test('free Scratch registration validates and stores complete form data', async () => {
+  const invalid = await request('/api/free-course-registrations', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fullName: 'Test Free Student', phone: '۰۹۱۲۱۱۱۲۲۳۳', age: 12, province: 'تهران', educationGrade: 'هفتم', relation: 'خودم', bannerShared: false, programmingExperience: 'کاملاً مبتدی هستم' }),
+  })
+  assert.equal(invalid.response.status, 400)
+
+  const payload = { fullName: 'Test Free Student', phone: '۰۹۱۲۱۱۱۲۲۳۳', age: 12, province: 'تهران', educationGrade: 'هفتم', relation: 'خودم', bannerShared: true, programmingExperience: 'کاملاً مبتدی هستم' }
+  const created = await request('/api/free-course-registrations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+  assert.equal(created.response.status, 201)
+  freeRegistrationId = created.body.id
+  const duplicate = await request('/api/free-course-registrations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+  assert.equal(duplicate.response.status, 409)
+  const privateList = await request('/api/admin/free-course-registrations')
+  assert.equal(privateList.response.status, 401)
+})
+
 test('admin creates a session, uploads an allowed file and enrollment controls access', async () => {
   const rejectedLogin = await request('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'Automated-Test-Admin-Password' }) })
   assert.equal(rejectedLogin.response.status, 401)
@@ -125,6 +143,27 @@ test('admin creates a session, uploads an allowed file and enrollment controls a
   assert.ok(unlocked.body.some((item) => item.id === sessionId))
   const access = await request(`/api/session-assets/${sessionAssetId}/access`, auth(studentToken))
   assert.match(access.body.url, /token=/)
+})
+
+test('admin creates one secure student account from a free registration', async () => {
+  const list = await request('/api/admin/free-course-registrations', auth(adminToken))
+  assert.equal(list.response.status, 200)
+  const registration = list.body.find((item) => item.id === freeRegistrationId)
+  assert.equal(registration.phone, '09121112233')
+  assert.equal('password' in registration, false)
+
+  const created = await request(`/api/admin/free-course-registrations/${freeRegistrationId}/create-account`, { method: 'POST', ...auth(adminToken) })
+  assert.equal(created.response.status, 201)
+  assert.equal(created.body.credentials.username, '09121112233')
+  assert.ok(created.body.credentials.password.length >= 12)
+  const login = await request('/api/auth/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: created.body.credentials.username, password: created.body.credentials.password }),
+  })
+  assert.equal(login.response.status, 200)
+  assert.equal(login.body.user.name, 'Test Free Student')
+  const duplicate = await request(`/api/admin/free-course-registrations/${freeRegistrationId}/create-account`, { method: 'POST', ...auth(adminToken) })
+  assert.equal(duplicate.response.status, 409)
 })
 
 test('admin assigns learning level and course-specific daily mission is completed once', async () => {
@@ -209,7 +248,7 @@ test('site messages require moderation and can include an admin reply', async ()
 
 test('admin dashboard, rubric grading and certificate verification work', async () => {
   const dashboard = await request('/api/admin/learning-dashboard', auth(adminToken))
-  assert.equal(dashboard.body.summary.students, 1)
+  assert.equal(dashboard.body.summary.students, 2)
   assert.equal(dashboard.body.summary.demoAccounts, 8)
 
   await request(`/api/projects/${projectId}`, { method: 'PATCH', ...auth(adminToken, { status: 'revision_required', scoreAwarded: 50, adminNotes: 'Please revise', rubric: [{ title: 'Technical', maxScore: 60 }] }) })

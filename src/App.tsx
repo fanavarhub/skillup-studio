@@ -10,6 +10,7 @@ import Footer from './components/Footer';
 import TrialAssessment from './components/TrialAssessment';
 import CertificateVerify from './components/CertificateVerify';
 import Testimonials from './components/Testimonials';
+import FreeScratchRegistration from './components/FreeScratchRegistration';
 import { AuthUser, UserRole } from './types';
 
 const authUserKey = 'skillup_auth_user';
@@ -96,6 +97,10 @@ export default function App() {
 
         {currentTab === 'articles' && (
           <Articles />
+        )}
+
+        {currentTab === 'signup' && (
+          <FreeScratchRegistration />
         )}
 
         {currentTab === 'dashboard' && (
