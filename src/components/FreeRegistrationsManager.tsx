@@ -4,6 +4,25 @@ import type { FreeCourseRegistration } from '../types';
 
 type Credentials = { username: string; password: string };
 
+const welcomeMessage = (account: Credentials) => `🎉 ثبت‌نامت در اِسکیل‌آپ با موفقیت انجام شد
+
+سلام 👋
+حساب کاربری شما در پلتفرم آموزشی اسکیل‌آپ با موفقیت ساخته شد و دوره اسکرچ مقدماتی برای شما فعال شد. 🚀
+
+📚 دوره: اسکرچ مقدماتی
+📅 تاریخ شروع دوره: [شنبه ۳۱ مرداد]
+
+━━━━━━━━━━━━━━
+
+🔐 اطلاعات ورود به اسکیل‌آپ
+
+👤 نام کاربری: ${account.username}
+🔑 رمز عبور: ${account.password}
+
+🌐 حتماً همین حالا وارد سایت اسکیل‌آپ شوید و نام کاربری و رمز عبور خود را تست کنید تا مطمئن شوید همه‌چیز آماده است.
+
+اگر هنگام ورود یا استفاده از حساب مشکلی داشتید، همین‌جا به ما پیام دهید. 💬`;
+
 export default function FreeRegistrationsManager({ registrations, adminFetch, reload }: {
   registrations: FreeCourseRegistration[];
   adminFetch: (url: string, options?: RequestInit) => Promise<Response>;
@@ -71,7 +90,7 @@ export default function FreeRegistrationsManager({ registrations, adminFetch, re
               <div className="flex items-center gap-2 text-sm font-black text-emerald-800"><CheckCircle2 className="h-5 w-5" />حساب ساخته شد؛ اطلاعات را همین حالا ارسال کنید</div>
               <Credential label="نام کاربری" value={account.username} copied={copied === `${item.id}-username`} onCopy={() => copy(`${item.id}-username`, account.username)} />
               <Credential label="رمز عبور موقت" value={account.password} copied={copied === `${item.id}-password`} onCopy={() => copy(`${item.id}-password`, account.password)} />
-              <button onClick={() => copy(`${item.id}-all`, `نام کاربری اسکیل آپ: ${account.username}\nرمز عبور: ${account.password}`)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white"><Copy className="h-4 w-4" />{copied === `${item.id}-all` ? 'کپی شد' : 'کپی هر دو برای ارسال'}</button>
+              <button onClick={() => copy(`${item.id}-all`, welcomeMessage(account))} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white"><Copy className="h-4 w-4" />{copied === `${item.id}-all` ? 'متن کامل کپی شد' : 'کپی متن کامل برای ارسال'}</button>
             </div>}
 
             {!item.userId && !account && <button disabled={creatingId === item.id} onClick={() => createAccount(item)} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-violet-600 to-indigo-600 py-3.5 text-sm font-black text-white shadow-lg shadow-violet-200 disabled:opacity-60">{creatingId === item.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <UserPlus className="h-5 w-5" />}{creatingId === item.id ? 'در حال ساخت حساب…' : 'ثبت‌نام و ساخت حساب'}</button>}

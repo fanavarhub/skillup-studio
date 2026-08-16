@@ -162,15 +162,32 @@ test('admin creates one secure student account from a free registration', async 
   const created = await request(`/api/admin/free-course-registrations/${freeRegistrationId}/create-account`, { method: 'POST', ...auth(adminToken) })
   assert.equal(created.response.status, 201)
   assert.equal(created.body.credentials.username, '09121112233')
-  assert.ok(created.body.credentials.password.length >= 12)
+  assert.equal(created.body.credentials.password, '12344321')
+  assert.equal(created.body.course.id, 'course-1')
   const login = await request('/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone: created.body.credentials.username, password: created.body.credentials.password }),
   })
   assert.equal(login.response.status, 200)
   assert.equal(login.body.user.name, 'Test Free Student')
+  const freeProfile = await request('/api/student-profile', auth(login.body.token))
+  assert.ok(freeProfile.body.purchasedCourses.includes('course-1'))
   const duplicate = await request(`/api/admin/free-course-registrations/${freeRegistrationId}/create-account`, { method: 'POST', ...auth(adminToken) })
   assert.equal(duplicate.response.status, 409)
+
+  const existingRegistration = await request('/api/free-course-registrations', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fullName: 'Test Student', phone: '09120001122', age: 13, province: 'تهران', educationGrade: 'هشتم', relation: 'خودم', bannerShared: true, programmingExperience: 'کمی آشنایی دارم' }),
+  })
+  const linked = await request(`/api/admin/free-course-registrations/${existingRegistration.body.id}/create-account`, { method: 'POST', ...auth(adminToken) })
+  assert.equal(linked.response.status, 200)
+  assert.equal(linked.body.existingAccount, true)
+  assert.equal(linked.body.credentials.password, '12344321')
+  const relogin = await request('/api/auth/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: '09120001122', password: '12344321' }),
+  })
+  assert.equal(relogin.response.status, 200)
 })
 
 test('admin assigns learning level and course-specific daily mission is completed once', async () => {

@@ -29,10 +29,28 @@ function hashGeneratedPassword(password: string, salt = crypto.randomBytes(12).t
   return `${salt}:${crypto.scryptSync(password, salt, 32).toString('hex')}`
 }
 
-function generatedStudentPassword() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
-  const part = (length: number) => Array.from({ length }, () => alphabet[crypto.randomInt(alphabet.length)]).join('')
-  return `SU-${part(5)}-${part(5)}`
+const freeRegistrationPassword = '12344321'
+
+function activateFreeScratchCourse(db: DatabaseSync, userId: string, displayName: string) {
+  const course = db.prepare(`SELECT id, title FROM courses
+    WHERE id = 'course-1' OR lower(title) LIKE '%scratch%'
+    ORDER BY CASE WHEN id = 'course-1' THEN 0 ELSE 1 END, created_at LIMIT 1`).get() as { id: string; title: string } | undefined
+  const createdAt = now()
+  let profile = db.prepare('SELECT purchased_courses FROM student_profiles WHERE user_id = ?').get(userId) as { purchased_courses: string } | undefined
+  if (!profile) {
+    db.prepare(`INSERT INTO student_profiles
+      (user_id, display_name, xp, purchased_courses, is_bot, created_at, updated_at, last_activity_at)
+      VALUES (?, ?, 0, '[]', 0, ?, ?, ?)`
+    ).run(userId, displayName, createdAt, createdAt, createdAt)
+    profile = { purchased_courses: '[]' }
+  }
+  if (course) {
+    const purchased = new Set(json<string[]>(profile.purchased_courses, []))
+    purchased.add(course.id)
+    db.prepare('UPDATE student_profiles SET purchased_courses = ?, updated_at = ? WHERE user_id = ?')
+      .run(JSON.stringify([...purchased]), createdAt, userId)
+  }
+  return course || null
 }
 
 function freeRegistrationDto(row: any) {
@@ -763,23 +781,30 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     const existing = db.prepare('SELECT id, name, phone, role FROM users WHERE phone = ?').get(registration.phone) as any
     if (existing) {
       if (existing.role !== 'student') return res.status(409).json({ error: 'این شماره به یک حساب غیرهنرجو متصل است.' })
+      db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
+        .run(hashGeneratedPassword(freeRegistrationPassword), now(), existing.id)
+      const course = activateFreeScratchCourse(db, existing.id, existing.name)
       db.prepare("UPDATE free_course_registrations SET user_id = ?, status = 'account_linked', updated_at = ? WHERE id = ?")
         .run(existing.id, now(), registration.id)
-      return res.json({ success: true, existingAccount: true, user: existing })
+      return res.json({
+        success: true,
+        existingAccount: true,
+        user: existing,
+        course,
+        credentials: { username: existing.phone, password: freeRegistrationPassword },
+      })
     }
 
     const userId = uid('user')
-    const password = generatedStudentPassword()
+    const password = freeRegistrationPassword
     const createdAt = now()
+    let course: { id: string; title: string } | null = null
     db.exec('BEGIN')
     try {
       db.prepare(`INSERT INTO users (id, name, phone, password_hash, role, created_at, updated_at)
         VALUES (?, ?, ?, ?, 'student', ?, ?)`
       ).run(userId, registration.full_name, registration.phone, hashGeneratedPassword(password), createdAt, createdAt)
-      db.prepare(`INSERT INTO student_profiles
-        (user_id, display_name, xp, purchased_courses, is_bot, created_at, updated_at, last_activity_at)
-        VALUES (?, ?, 0, '[]', 0, ?, ?, ?)`
-      ).run(userId, registration.full_name, createdAt, createdAt, createdAt)
+      course = activateFreeScratchCourse(db, userId, registration.full_name)
       db.prepare("UPDATE free_course_registrations SET user_id = ?, status = 'account_created', updated_at = ? WHERE id = ?")
         .run(userId, createdAt, registration.id)
       db.exec('COMMIT')
@@ -791,6 +816,7 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
       success: true,
       existingAccount: false,
       user: { id: userId, name: registration.full_name, phone: registration.phone, role: 'student' },
+      course,
       credentials: { username: registration.phone, password },
     })
   })
