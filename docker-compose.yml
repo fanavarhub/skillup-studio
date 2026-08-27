@@ -13,6 +13,8 @@ services:
       SKILLUP_SESSION_SECRET: ${SKILLUP_SESSION_SECRET:?Set a random 32+ character SKILLUP_SESSION_SECRET in .env}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://skill-up.ir}
       APP_URL: ${APP_URL:-https://skill-up.ir}
+      FREE_SCRATCH_COURSE_ID: ${FREE_SCRATCH_COURSE_ID:-course-1}
+      FREE_SCRATCH_REPLACED_COURSE_ID: ${FREE_SCRATCH_REPLACED_COURSE_ID:-}
     volumes:
       - ./data:/app/data
     ports:

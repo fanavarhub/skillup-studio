@@ -32,9 +32,11 @@ function hashGeneratedPassword(password: string, salt = crypto.randomBytes(12).t
 const freeRegistrationPassword = '12344321'
 
 function activateFreeScratchCourse(db: DatabaseSync, userId: string, displayName: string) {
-  const course = db.prepare(`SELECT id, title FROM courses
-    WHERE id = 'course-1' OR lower(title) LIKE '%scratch%'
-    ORDER BY CASE WHEN id = 'course-1' THEN 0 ELSE 1 END, created_at LIMIT 1`).get() as { id: string; title: string } | undefined
+  const configuredCourseId = text(process.env.FREE_SCRATCH_COURSE_ID || 'course-1', 120)
+  const replacedCourseId = text(process.env.FREE_SCRATCH_REPLACED_COURSE_ID, 120)
+  const course = db.prepare('SELECT id, title FROM courses WHERE id = ? AND is_active = 1')
+    .get(configuredCourseId) as { id: string; title: string } | undefined
+  if (!course) throw new Error(`FREE_SCRATCH_COURSE_ID does not point to an active course: ${configuredCourseId}`)
   const createdAt = now()
   let profile = db.prepare('SELECT purchased_courses FROM student_profiles WHERE user_id = ?').get(userId) as { purchased_courses: string } | undefined
   if (!profile) {
@@ -44,13 +46,12 @@ function activateFreeScratchCourse(db: DatabaseSync, userId: string, displayName
     ).run(userId, displayName, createdAt, createdAt, createdAt)
     profile = { purchased_courses: '[]' }
   }
-  if (course) {
-    const purchased = new Set(json<string[]>(profile.purchased_courses, []))
-    purchased.add(course.id)
-    db.prepare('UPDATE student_profiles SET purchased_courses = ?, updated_at = ? WHERE user_id = ?')
-      .run(JSON.stringify([...purchased]), createdAt, userId)
-  }
-  return course || null
+  const purchased = new Set(json<string[]>(profile.purchased_courses, []))
+  if (replacedCourseId && replacedCourseId !== course.id) purchased.delete(replacedCourseId)
+  purchased.add(course.id)
+  db.prepare('UPDATE student_profiles SET purchased_courses = ?, updated_at = ? WHERE user_id = ?')
+    .run(JSON.stringify([...purchased]), createdAt, userId)
+  return course
 }
 
 function freeRegistrationDto(row: any) {
@@ -781,9 +782,9 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     const existing = db.prepare('SELECT id, name, phone, role FROM users WHERE phone = ?').get(registration.phone) as any
     if (existing) {
       if (existing.role !== 'student') return res.status(409).json({ error: 'این شماره به یک حساب غیرهنرجو متصل است.' })
+      const course = activateFreeScratchCourse(db, existing.id, existing.name)
       db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
         .run(hashGeneratedPassword(freeRegistrationPassword), now(), existing.id)
-      const course = activateFreeScratchCourse(db, existing.id, existing.name)
       db.prepare("UPDATE free_course_registrations SET user_id = ?, status = 'account_linked', updated_at = ? WHERE id = ?")
         .run(existing.id, now(), registration.id)
       return res.json({

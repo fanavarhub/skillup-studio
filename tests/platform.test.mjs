@@ -42,6 +42,7 @@ before(async () => {
       SKILLUP_ADMIN_PASSWORD: 'Automated-Test-Admin-Password',
       SKILLUP_SESSION_SECRET: 'automated-test-session-secret-longer-than-32-characters',
       PUBLIC_BASE_URL: base,
+      FREE_SCRATCH_COURSE_ID: 'course-1',
     },
     stdio: 'ignore',
   })
