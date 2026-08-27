@@ -168,7 +168,7 @@ export default function Navbar({ currentTab, setCurrentTab, userRole, setUserRol
               <span className="text-right"><b className="block text-lg leading-tight text-slate-950">اسکیل آپ</b><small className="font-bold text-indigo-600">Skill Up</small></span>
             </button>
             <div className="hidden items-center gap-6 md:flex">
-              {navItems.map((item) => <button key={item.id} onClick={() => goToTab(item.id)} className={`relative py-2 text-sm font-bold transition ${currentTab === item.id ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-950'}`}>{item.label}{currentTab === item.id && <span className="absolute inset-x-1 -bottom-1 h-1 rounded-full bg-gradient-to-l from-indigo-500 to-fuchsia-500" />}</button>)}
+              {navItems.map((item) => { const active = currentTab === item.id || (item.id === 'articles' && currentTab === 'scratch-download'); return <button key={item.id} onClick={() => goToTab(item.id)} className={`relative py-2 text-sm font-bold transition ${active ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-950'}`}>{item.label}{active && <span className="absolute inset-x-1 -bottom-1 h-1 rounded-full bg-gradient-to-l from-indigo-500 to-fuchsia-500" />}</button>; })}
             </div>
           </div>
 

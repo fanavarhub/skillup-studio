@@ -15,6 +15,7 @@ const PORT = Number(process.env.PORT || 3000)
 const isProduction = process.env.NODE_ENV === 'production'
 const rootDir = process.cwd()
 const dataDir = path.join(rootDir, 'data')
+const downloadDir = path.join(dataDir, 'downloads')
 const dbPath = path.join(dataDir, 'skillup-studio.sqlite')
 const adminUsername = process.env.SKILLUP_ADMIN_USERNAME || 'admin'
 const adminPassword = process.env.SKILLUP_ADMIN_PASSWORD || (isProduction ? '' : 'SkillUp@1405')
@@ -22,6 +23,7 @@ const adminPassword = process.env.SKILLUP_ADMIN_PASSWORD || (isProduction ? '' :
 if (isProduction && !adminPassword) throw new Error('SKILLUP_ADMIN_PASSWORD must be configured in production.')
 
 fs.mkdirSync(dataDir, { recursive: true })
+fs.mkdirSync(downloadDir, { recursive: true })
 app.set('trust proxy', true)
 app.use(express.json({ limit: '1mb' }))
 app.disable('x-powered-by')
@@ -416,6 +418,20 @@ function consultationRateLimit(req: Request, res: Response, next: NextFunction) 
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, storage: 'sqlite' })
+})
+
+const downloadableScratchFiles: Record<string, string> = {
+  'scratch-windows.exe': 'scratch-windows.exe',
+  'scratch-android.apk': 'scratch-android.apk',
+}
+
+app.get('/downloads/:filename', (req, res) => {
+  const storageName = downloadableScratchFiles[String(req.params.filename)]
+  if (!storageName) return res.status(404).json({ error: 'فایل دانلود پیدا نشد.' })
+  const filePath = path.join(downloadDir, storageName)
+  if (!fs.existsSync(filePath)) return res.status(503).json({ error: 'فایل دانلود هنوز روی سرور قرار نگرفته است.' })
+  res.setHeader('Cache-Control', 'public, max-age=86400')
+  res.download(filePath, storageName)
 })
 
 app.post('/api/admin/login', authRateLimit, (req, res) => {
@@ -1013,6 +1029,63 @@ async function startServer() {
   } else {
     const distPath = path.join(rootDir, 'dist')
     app.use(express.static(distPath, { maxAge: '7d', index: false }))
+    app.get(['/magazine', '/magazine/'], (_req, res) => {
+      const html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8')
+        .replace(/<title>[\s\S]*?<\/title>/, '<title>مجله اسکیل آپ | آموزش برنامه‌نویسی و مهارت‌های دیجیتال نوجوانان</title>')
+        .replace(/<meta name="description"[^>]*>/, '<meta name="description" content="مقاله‌ها و راهنماهای کاربردی اسکیل آپ برای آموزش برنامه‌نویسی، اسکرچ، هوش مصنوعی و مهارت‌های دیجیتال کودکان و نوجوانان." />')
+        .replace(/<meta property="og:title"[^>]*>/, '<meta property="og:title" content="مجله اسکیل آپ" />')
+        .replace(/<meta property="og:description"[^>]*>/, '<meta property="og:description" content="راهنماهای کاربردی برنامه‌نویسی و مهارت‌های دیجیتال برای نسل نوجوان." />')
+        .replace('</head>', '    <link rel="canonical" href="https://skill-up.ir/magazine" />\n  </head>')
+      res.type('html').send(html)
+    })
+    app.get(['/magazine/download-scratch', '/magazine/download-scratch/'], (_req, res) => {
+      const indexPath = path.join(distPath, 'index.html')
+      const articleSchema = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'Article',
+            headline: 'دانلود اسکرچ برای ویندوز و اندروید + آموزش نصب',
+            description: 'دانلود مستقیم اسکرچ، لینک رسمی Google Play و آموزش نصب قدم‌به‌قدم برای کودکان و نوجوانان.',
+            inLanguage: 'fa-IR',
+            datePublished: '2026-08-27',
+            dateModified: '2026-08-27',
+            mainEntityOfPage: 'https://skill-up.ir/magazine/download-scratch',
+            image: 'https://skill-up.ir/assets/scratch-download-cover.svg',
+            author: { '@type': 'Organization', name: 'اسکیل آپ', url: 'https://skill-up.ir/' },
+            publisher: { '@type': 'Organization', name: 'اسکیل آپ', url: 'https://skill-up.ir/' },
+          },
+          {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'خانه', item: 'https://skill-up.ir/' },
+              { '@type': 'ListItem', position: 2, name: 'مجله اسکیل آپ', item: 'https://skill-up.ir/magazine' },
+              { '@type': 'ListItem', position: 3, name: 'دانلود اسکرچ', item: 'https://skill-up.ir/magazine/download-scratch' },
+            ],
+          },
+        ],
+      }).replace(/</g, '\\u003c')
+      const seoHead = `
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://skill-up.ir/magazine/download-scratch" />
+    <meta property="og:site_name" content="اسکیل آپ" />
+    <meta property="og:url" content="https://skill-up.ir/magazine/download-scratch" />
+    <meta property="og:image" content="https://skill-up.ir/assets/scratch-download-cover.svg" />
+    <meta property="og:image:alt" content="دانلود اسکرچ و آموزش نصب در اسکیل آپ" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="دانلود اسکرچ + آموزش نصب | اسکیل آپ" />
+    <meta name="twitter:description" content="دانلود مستقیم نسخه ویندوز و اندروید اسکرچ همراه با راهنمای نصب." />
+    <meta name="twitter:image" content="https://skill-up.ir/assets/scratch-download-cover.svg" />
+    <script type="application/ld+json">${articleSchema}</script>`
+      const html = fs.readFileSync(indexPath, 'utf8')
+        .replace(/<title>[\s\S]*?<\/title>/, '<title>دانلود اسکرچ برای ویندوز و اندروید + آموزش نصب | اسکیل آپ</title>')
+        .replace(/<meta name="description"[^>]*>/, '<meta name="description" content="دانلود مستقیم اسکرچ برای ویندوز و اندروید، لینک رسمی Google Play و آموزش نصب قدم‌به‌قدم برای کودکان و نوجوانان." />')
+        .replace(/<meta property="og:title"[^>]*>/, '<meta property="og:title" content="دانلود اسکرچ برای ویندوز و اندروید + آموزش نصب" />')
+        .replace(/<meta property="og:description"[^>]*>/, '<meta property="og:description" content="نسخه مناسب اسکرچ را دانلود کن و قدم‌به‌قدم برای شروع برنامه‌نویسی آماده شو." />')
+        .replace(/<meta property="og:type"[^>]*>/, '<meta property="og:type" content="article" />')
+        .replace('</head>', `${seoHead}\n  </head>`)
+      res.type('html').send(html)
+    })
     app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'))
     })

@@ -11,10 +11,24 @@ import TrialAssessment from './components/TrialAssessment';
 import CertificateVerify from './components/CertificateVerify';
 import Testimonials from './components/Testimonials';
 import FreeScratchRegistration from './components/FreeScratchRegistration';
+import ScratchDownloadArticle from './components/ScratchDownloadArticle';
 import { AuthUser, UserRole } from './types';
 
 const authUserKey = 'skillup_auth_user';
-const tabFromPath = () => window.location.pathname.replace(/\/+$/, '') === '/signup' ? 'signup' : 'home';
+const tabFromPath = () => {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/signup') return 'signup';
+  if (path === '/magazine/download-scratch') return 'scratch-download';
+  if (path === '/magazine') return 'articles';
+  return 'home';
+};
+
+const pathForTab = (tab: string) => {
+  if (tab === 'signup') return '/signup';
+  if (tab === 'scratch-download') return '/magazine/download-scratch';
+  if (tab === 'articles') return '/magazine';
+  return '/';
+};
 
 export default function App() {
   const certificateCode = new URLSearchParams(window.location.search).get('certificate');
@@ -48,9 +62,8 @@ export default function App() {
 
   useEffect(() => {
     if (certificateCode) return;
-    const onSignupPath = window.location.pathname.replace(/\/+$/, '') === '/signup';
-    if (currentTab === 'signup' && !onSignupPath) window.history.pushState({}, '', '/signup');
-    if (currentTab !== 'signup' && onSignupPath) window.history.pushState({}, '', '/');
+    const targetPath = pathForTab(currentTab);
+    if (window.location.pathname.replace(/\/+$/, '') !== targetPath) window.history.pushState({}, '', targetPath);
   }, [certificateCode, currentTab]);
 
   useEffect(() => {
@@ -110,7 +123,11 @@ export default function App() {
         )}
 
         {currentTab === 'articles' && (
-          <Articles />
+          <Articles navigate={setCurrentTab} />
+        )}
+
+        {currentTab === 'scratch-download' && (
+          <ScratchDownloadArticle navigate={setCurrentTab} />
         )}
 
         {currentTab === 'signup' && (

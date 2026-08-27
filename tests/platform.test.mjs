@@ -80,6 +80,30 @@ test('direct signup URL serves the registration application', async () => {
   assert.match(body, /اسکیل آپ/)
 })
 
+test('Scratch download article has a crawlable SEO shell', async () => {
+  const { response, body } = await request('/magazine/download-scratch')
+  assert.equal(response.status, 200)
+  assert.match(body, /<title>دانلود اسکرچ برای ویندوز و اندروید \+ آموزش نصب \| اسکیل آپ<\/title>/)
+  assert.match(body, /rel="canonical" href="https:\/\/skill-up\.ir\/magazine\/download-scratch"/)
+  assert.match(body, /"@type":"Article"/)
+})
+
+test('magazine index has its own canonical SEO shell', async () => {
+  const { response, body } = await request('/magazine')
+  assert.equal(response.status, 200)
+  assert.match(body, /<title>مجله اسکیل آپ \| آموزش برنامه‌نویسی و مهارت‌های دیجیتال نوجوانان<\/title>/)
+  assert.match(body, /rel="canonical" href="https:\/\/skill-up\.ir\/magazine"/)
+})
+
+test('unknown or unprovisioned downloads never fall through to the SPA', async () => {
+  const unknown = await request('/downloads/not-allowed.exe')
+  assert.equal(unknown.response.status, 404)
+  assert.equal(unknown.response.headers.get('content-type')?.includes('application/json'), true)
+  const missing = await request('/downloads/scratch-windows.exe')
+  assert.equal(missing.response.status, 503)
+  assert.equal(missing.response.headers.get('content-type')?.includes('application/json'), true)
+})
+
 test('student resources require a signed session', async () => {
   const { response } = await request('/api/student-profile')
   assert.equal(response.status, 401)
