@@ -12,6 +12,8 @@ import CertificateVerify from './components/CertificateVerify';
 import Testimonials from './components/Testimonials';
 import FreeScratchRegistration from './components/FreeScratchRegistration';
 import ScratchDownloadArticle from './components/ScratchDownloadArticle';
+import CourseDetail from './components/CourseDetail';
+import MagazineArticle from './components/MagazineArticle';
 import { AuthUser, UserRole } from './types';
 
 const authUserKey = 'skillup_auth_user';
@@ -20,6 +22,12 @@ const tabFromPath = () => {
   if (path === '/signup') return 'signup';
   if (path === '/magazine/download-scratch') return 'scratch-download';
   if (path === '/magazine') return 'articles';
+  if (path.startsWith('/magazine/')) return `article:${decodeURIComponent(path.slice('/magazine/'.length))}`;
+  if (path === '/courses') return 'courses';
+  if (path === '/projects') return 'projects';
+  if (path === '/dashboard') return 'dashboard';
+  if (path === '/admin') return 'admin';
+  if (path.startsWith('/courses/')) return `course:${decodeURIComponent(path.slice('/courses/'.length))}`;
   return 'home';
 };
 
@@ -27,6 +35,12 @@ const pathForTab = (tab: string) => {
   if (tab === 'signup') return '/signup';
   if (tab === 'scratch-download') return '/magazine/download-scratch';
   if (tab === 'articles') return '/magazine';
+  if (tab === 'courses') return '/courses';
+  if (tab === 'projects') return '/projects';
+  if (tab === 'dashboard') return '/dashboard';
+  if (tab === 'admin') return '/admin';
+  if (tab.startsWith('article:')) return `/magazine/${encodeURIComponent(tab.slice('article:'.length))}`;
+  if (tab.startsWith('course:')) return `/courses/${encodeURIComponent(tab.slice('course:'.length))}`;
   return '/';
 };
 
@@ -55,6 +69,10 @@ export default function App() {
   }, [currentTab]);
 
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent('skillup:navigation', { detail: { path: `${window.location.pathname}${window.location.search}` } }));
+  }, [currentTab]);
+
+  useEffect(() => {
     const onHistoryChange = () => setCurrentTab(tabFromPath());
     window.addEventListener('popstate', onHistoryChange);
     return () => window.removeEventListener('popstate', onHistoryChange);
@@ -69,6 +87,26 @@ export default function App() {
   useEffect(() => {
     if (currentUser) setUserRole(currentUser.role);
   }, [currentUser]);
+
+  useEffect(() => {
+    const pages: Record<string, { title: string; description: string; index: boolean }> = {
+      home: { title: 'اسکیل آپ | آموزش برنامه‌نویسی و هوش مصنوعی نوجوانان', description: 'آموزش پروژه‌محور برنامه‌نویسی، اسکرچ، هوش مصنوعی و مهارت‌های دیجیتال برای کودکان و نوجوانان همراه با مربی و پروژه واقعی.', index: true },
+      courses: { title: 'دوره‌های برنامه‌نویسی کودکان و نوجوانان | اسکیل آپ', description: 'دوره‌های پروژه‌محور اسکرچ، برنامه‌نویسی، هوش مصنوعی و مهارت‌های دیجیتال اسکیل آپ را مقایسه و مسیر مناسب را انتخاب کنید.', index: true },
+      projects: { title: 'پروژه‌های برنامه‌نویسی نوجوانان | اسکیل آپ', description: 'نمونه پروژه‌های واقعی هنرجویان اسکیل آپ در بازی‌سازی، اسکرچ، هوش مصنوعی و تولید محتوای دیجیتال را ببینید.', index: true },
+      signup: { title: 'ثبت‌نام رایگان دوره مقدماتی اسکرچ | اسکیل آپ', description: 'فرم ثبت‌نام رایگان دوره مقدماتی اسکرچ برای کودکان و نوجوانان؛ اطلاعات را تکمیل کنید تا حساب و دسترسی دوره برایتان فعال شود.', index: true },
+      articles: { title: 'مجله اسکیل آپ | آموزش برنامه‌نویسی و مهارت‌های دیجیتال نوجوانان', description: 'راهنماهای کاربردی اسکرچ، هوش مصنوعی، برنامه‌نویسی و رشد مهارت‌های دیجیتال برای نوجوانان و والدین.', index: true },
+      dashboard: { title: 'پنل هنرجو | اسکیل آپ', description: 'فضای شخصی یادگیری هنرجوی اسکیل آپ.', index: false },
+      admin: { title: 'پنل مدیریت | اسکیل آپ', description: 'مدیریت امن پلتفرم اسکیل آپ.', index: false },
+    };
+    const page = pages[currentTab];
+    if (!page) return;
+    document.title = page.title;
+    document.head.querySelector('meta[name="description"]')?.setAttribute('content', page.description);
+    document.head.querySelector('link[rel="canonical"]')?.setAttribute('href', `https://skill-up.ir${pathForTab(currentTab)}`);
+    let robots = document.head.querySelector('meta[name="robots"]');
+    if (!robots) { robots = document.createElement('meta'); robots.setAttribute('name', 'robots'); document.head.appendChild(robots); }
+    robots.setAttribute('content', page.index ? 'index, follow, max-image-preview:large' : 'noindex, nofollow');
+  }, [currentTab]);
 
   if (certificateCode) return <CertificateVerify code={certificateCode} onBack={() => { window.history.replaceState({}, '', '/'); window.location.reload(); }} />;
 
@@ -118,6 +156,10 @@ export default function App() {
           />
         )}
 
+        {currentTab.startsWith('course:') && (
+          <CourseDetail courseId={currentTab.slice('course:'.length)} studentName={currentUser?.role === 'student' ? currentUser.name : undefined} navigate={setCurrentTab} />
+        )}
+
         {currentTab === 'projects' && (
           <ProjectShowcase />
         )}
@@ -128,6 +170,10 @@ export default function App() {
 
         {currentTab === 'scratch-download' && (
           <ScratchDownloadArticle navigate={setCurrentTab} />
+        )}
+
+        {currentTab.startsWith('article:') && (
+          <MagazineArticle slug={currentTab.slice('article:'.length)} navigate={setCurrentTab} />
         )}
 
         {currentTab === 'signup' && (

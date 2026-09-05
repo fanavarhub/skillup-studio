@@ -17,7 +17,6 @@ export default function LearningAdmin({ token, courses }: { token: string; cours
   const [message, setMessage] = useState('');
   const [assignment, setAssignment] = useState({ courseId: '', title: '', description: '', dueAt: '' });
   const [certificateNotes, setCertificateNotes] = useState<Record<string, string>>({});
-  const [announcement, setAnnouncement] = useState('');
   const [tasks, setTasks] = useState<DailyTask[]>([]);
   const [taskForm, setTaskForm] = useState(emptyTask);
   const [editingTask, setEditingTask] = useState<string | null>(null);
@@ -48,7 +47,7 @@ export default function LearningAdmin({ token, courses }: { token: string; cours
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
-    anchor.href = url; anchor.download = 'skillup-learning-dashboard.csv'; anchor.click();
+    anchor.href = url; anchor.download = 'skillup-users-report.csv'; anchor.click();
     URL.revokeObjectURL(url);
   };
 
@@ -74,12 +73,6 @@ export default function LearningAdmin({ token, courses }: { token: string; cours
   const toggleBlock = async (student: Student) => {
     await adminFetch(`/api/admin/users/${student.userId}/block`, { method: 'POST', body: JSON.stringify({ blocked: !student.blocked, reason: 'مدیریت باشگاه' }) });
     load().catch(console.error);
-  };
-
-  const sendAnnouncement = async () => {
-    if (!announcement.trim()) return;
-    const response = await adminFetch('/api/admin/club/announcement', { method: 'POST', body: JSON.stringify({ body: announcement }) });
-    if (response.ok) { setAnnouncement(''); setMessage('اعلان باشگاه منتشر شد.'); }
   };
 
   const setLearningLevel = async (student: Student, level: number) => {
@@ -143,8 +136,6 @@ export default function LearningAdmin({ token, courses }: { token: string; cours
         <div className="rounded-3xl border border-dashed border-sky-200 bg-sky-50/60 p-4"><h5 className="font-black text-sky-900">افزودن گروهی</h5><p className="mt-1 text-[10px] leading-5 text-sky-700">هر خط: سؤال | گزینه۱ | گزینه۲ | گزینه۳ | گزینه۴ | شماره پاسخ ۱ تا ۴ | توضیح</p><textarea value={bulkText} onChange={(event) => setBulkText(event.target.value)} className="input-admin mt-3 min-h-28 w-full" placeholder="۲+۲ چند است؟ | ۳ | ۴ | ۵ | ۶ | ۲ | پاسخ ۴ است"/><button type="button" onClick={addBulkTasks} className="mt-2 w-full rounded-2xl bg-sky-600 py-2.5 text-xs font-black text-white">ثبت گروهی با دوره و سطح انتخاب‌شده بالا</button></div></div>
         <div className="max-h-[680px] space-y-2 overflow-y-auto pl-1">{tasks.map((task) => <article key={task.id} className={`rounded-2xl border p-4 ${task.isActive ? 'border-slate-100 bg-white' : 'border-slate-200 bg-slate-50 opacity-65'}`}><div className="flex items-start justify-between gap-3"><div><div className="mb-2 flex flex-wrap gap-1"><span className="rounded-full bg-violet-100 px-2 py-1 text-[9px] font-bold text-violet-700">{task.levelBand}</span><span className="rounded-full bg-sky-100 px-2 py-1 text-[9px] font-bold text-sky-700">{task.courseTitle || 'عمومی'}</span><span className="rounded-full bg-amber-100 px-2 py-1 text-[9px] font-bold text-amber-700">{task.xpReward} XP</span></div><h6 className="text-sm font-black leading-7 text-slate-800">{task.question}</h6><p className="mt-1 text-[10px] text-slate-400">{task.options.join(' · ')}</p></div><div className="flex shrink-0 gap-1"><button onClick={() => editTask(task)} className="rounded-xl bg-indigo-50 p-2 text-indigo-600" title="ویرایش"><Pencil className="h-4 w-4"/></button><button onClick={() => toggleTask(task)} className={`rounded-xl p-2 ${task.isActive ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`} title={task.isActive ? 'غیرفعال‌کردن' : 'فعال‌کردن'}>{task.isActive ? <Trash2 className="h-4 w-4"/> : <RotateCcw className="h-4 w-4"/>}</button></div></div></article>)}</div></div>
     </section>
-
-    <section className="rounded-3xl bg-white border border-slate-200 p-5"><h4 className="font-black mb-3">اعلان باشگاه یادگیری</h4><div className="flex gap-2"><input value={announcement} onChange={(e) => setAnnouncement(e.target.value)} placeholder="پیام سراسری مدیر" className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"/><button onClick={sendAnnouncement} className="px-4 py-2 rounded-xl bg-cyan-600 text-white text-xs font-bold">انتشار</button></div></section>
 
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
       <form onSubmit={sendGift} className="rounded-3xl bg-white border border-slate-200 p-5 space-y-3"><h4 className="font-black flex items-center gap-2"><Gift className="w-5 h-5 text-fuchsia-600"/>هدیه یا اصلاح XP با دلیل</h4>

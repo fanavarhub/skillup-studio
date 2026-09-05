@@ -254,6 +254,8 @@ function courseDto(row: any, includePrivate = false) {
     capacity: row.capacity ?? undefined, enrolled: row.enrolled ?? 0, nextSessionAt: row.next_session_at || undefined,
     isActive: Boolean(row.is_active), offlineVideos: videos, sessionCount: Number(row.session_count || videos.length),
     onlineMeetingLink: includePrivate ? row.online_meeting_link : '',
+    isPurchased: includePrivate,
+    faqs: json<Array<{ question: string; answer: string }>>(row.faq_json, []),
   }
 }
 
@@ -357,6 +359,10 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, slot_key TEXT NOT NULL, activity TEXT NOT NULL,
       xp_delta INTEGER NOT NULL, created_at TEXT NOT NULL, UNIQUE(user_id, slot_key)
     );
+    CREATE TABLE IF NOT EXISTS password_reset_requests (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, phone TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL, resolved_at TEXT, resolved_by TEXT
+    );
   `)
 
   ensureColumn(db, 'student_profiles', 'assigned_level', 'INTEGER')
@@ -364,6 +370,10 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
   ensureColumn(db, 'question_bank', 'course_id', 'TEXT')
   ensureColumn(db, 'question_bank', 'xp_reward', 'INTEGER NOT NULL DEFAULT 3')
   ensureColumn(db, 'question_bank', 'sort_order', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn(db, 'club_posts', 'course_id', 'TEXT')
+
+  const legacyClubCourse = db.prepare('SELECT id FROM courses WHERE is_active = 1 ORDER BY created_at LIMIT 1').get() as { id?: string } | undefined
+  if (legacyClubCourse?.id) db.prepare('UPDATE club_posts SET course_id = ? WHERE course_id IS NULL').run(legacyClubCourse.id)
 
   const users = db.prepare("SELECT id, name FROM users WHERE role = 'student'").all() as Array<{ id: string; name: string }>
   const seedProfile = db.prepare(`INSERT OR IGNORE INTO student_profiles
@@ -391,6 +401,15 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     if (auth?.role === 'student') purchased = json<string[]>(profileRow(db, auth).purchased_courses, [])
     const rows = db.prepare(`SELECT c.*, (SELECT COUNT(*) FROM course_sessions s WHERE s.course_id = c.id AND s.is_published = 1) AS session_count FROM courses c ${isAdmin ? '' : 'WHERE c.is_active = 1'} ORDER BY c.created_at`).all() as any[]
     res.json(rows.map((row) => courseDto(row, Boolean(isAdmin || purchased.includes(row.id)))))
+  })
+
+  app.get('/api/courses/:id', (req, res) => {
+    const auth = session(req)
+    const row = db.prepare(`SELECT c.*, (SELECT COUNT(*) FROM course_sessions s WHERE s.course_id = c.id AND s.is_published = 1) AS session_count
+      FROM courses c WHERE c.id = ? AND (c.is_active = 1 OR ? = 1)`).get(text(req.params.id, 120), auth?.role === 'admin' ? 1 : 0) as any
+    if (!row) return res.status(404).json({ error: 'دوره پیدا نشد.' })
+    const purchased = auth?.role === 'student' && json<string[]>(profileRow(db, auth).purchased_courses, []).includes(row.id)
+    res.json(courseDto(row, Boolean(auth?.role === 'admin' || purchased)))
   })
 
   app.get('/api/student-profile', requireStudent, (req, res) => {
@@ -605,15 +624,20 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     res.json({ success: true })
   })
 
-  app.get('/api/club', (req, res) => {
-    const category = text(req.query.category, 30)
-    const where = category ? 'AND c.category = ?' : ''
-    const args = category ? [category] : []
-    const rows = db.prepare(`SELECT c.id, c.parent_id AS parentId, c.category, c.body, c.is_announcement AS isAnnouncement,
-      c.created_at AS createdAt, p.display_name AS author, p.is_bot AS isBot, p.public_label AS publicLabel
+  app.get('/api/club', requireStudent, (req, res) => {
+    const auth = res.locals.session as SessionUser
+    const courseId = text(req.query.courseId, 120)
+    const limit = Math.max(10, Math.min(50, Number(req.query.limit || 20)))
+    const offset = Math.max(0, Number(req.query.offset || 0))
+    const purchased = json<string[]>(profileRow(db, auth).purchased_courses, [])
+    if (!courseId || !purchased.includes(courseId)) return res.status(403).json({ error: 'باشگاه فقط برای دوره‌های فعال شما قابل مشاهده است.' })
+    const total = Number((db.prepare('SELECT COUNT(*) AS count FROM club_posts WHERE course_id = ? AND is_deleted = 0').get(courseId) as any).count)
+    const rows = db.prepare(`SELECT c.id, c.parent_id AS parentId, c.course_id AS courseId, c.category, c.body,
+      c.is_announcement AS isAnnouncement, c.created_at AS createdAt, p.display_name AS author
       FROM club_posts c JOIN student_profiles p ON p.user_id = c.user_id
-      WHERE c.is_deleted = 0 ${where} ORDER BY c.is_announcement DESC, c.created_at DESC LIMIT 100`).all(...args)
-    res.json(rows)
+      WHERE c.course_id = ? AND c.is_deleted = 0
+      ORDER BY c.is_announcement DESC, c.created_at DESC LIMIT ? OFFSET ?`).all(courseId, limit, offset)
+    res.json({ posts: rows, total, hasMore: offset + rows.length < total, nextOffset: offset + rows.length })
   })
 
   app.post('/api/club', requireStudent, (req, res) => {
@@ -621,9 +645,14 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     if (db.prepare('SELECT 1 FROM blocked_users WHERE user_id = ?').get(auth.id)) return res.status(403).json({ error: 'امکان ارسال پیام برای این حساب موقتاً مسدود است.' })
     const category = text(req.body.category, 30)
     const body = text(req.body.body, 1200)
+    const courseId = text(req.body.courseId, 120)
     if (!['general', 'qa', 'projects'].includes(category) || body.length < 2) return res.status(400).json({ error: 'دسته‌بندی و متن پیام الزامی است.' })
+    const purchased = json<string[]>(profileRow(db, auth).purchased_courses, [])
+    if (!courseId || !purchased.includes(courseId)) return res.status(403).json({ error: 'این باشگاه متعلق به دوره‌های فعال شما نیست.' })
+    const parentId = text(req.body.parentId, 120) || null
+    if (parentId && !db.prepare('SELECT 1 FROM club_posts WHERE id = ? AND course_id = ? AND is_deleted = 0').get(parentId, courseId)) return res.status(400).json({ error: 'پیام مرجع پیدا نشد.' })
     const postId = uid('post')
-    db.prepare('INSERT INTO club_posts (id, user_id, parent_id, category, body, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(postId, auth.id, text(req.body.parentId, 120) || null, category, body, now())
+    db.prepare('INSERT INTO club_posts (id, user_id, parent_id, course_id, category, body, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(postId, auth.id, parentId, courseId, category, body, now())
     const todayCount = (db.prepare("SELECT COUNT(*) count FROM club_posts WHERE user_id = ? AND created_at >= ? AND is_deleted = 0").get(auth.id, `${tehranDay()}T00:00:00.000Z`) as any).count
     const xp = todayCount <= 5 ? awardXp(db, auth.id, 1, 'club_message', postId, 'پیام مفید در باشگاه').awarded : 0
     res.status(201).json({ success: true, id: postId, xpAwarded: xp })
@@ -634,12 +663,37 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     res.json({ success: true })
   })
 
-  app.post('/api/admin/club/announcement', requireAdminSession, (req, res) => {
+  app.get('/api/admin/club', requireAdminSession, (req, res) => {
+    const courseId = text(req.query.courseId, 120)
+    const limit = Math.max(20, Math.min(200, Number(req.query.limit || 100)))
+    const rows = db.prepare(`SELECT c.id, c.parent_id AS parentId, c.course_id AS courseId, c.category, c.body,
+      c.is_announcement AS isAnnouncement, c.created_at AS createdAt, p.display_name AS author
+      FROM club_posts c JOIN student_profiles p ON p.user_id = c.user_id
+      WHERE c.is_deleted = 0 ${courseId ? 'AND c.course_id = ?' : ''}
+      ORDER BY c.created_at DESC LIMIT ?`).all(...(courseId ? [courseId, limit] : [limit]))
+    res.json(rows)
+  })
+
+  app.post('/api/admin/club/reply', requireAdminSession, (req, res) => {
+    const courseId = text(req.body.courseId, 120)
+    const parentId = text(req.body.parentId, 120)
     const body = text(req.body.body, 1200)
-    if (!body) return res.status(400).json({ error: 'متن اعلان الزامی است.' })
+    if (!courseId || !parentId || body.length < 2) return res.status(400).json({ error: 'دوره، پیام مرجع و متن پاسخ الزامی است.' })
+    if (!db.prepare('SELECT 1 FROM club_posts WHERE id = ? AND course_id = ? AND is_deleted = 0').get(parentId, courseId)) return res.status(404).json({ error: 'پیام مرجع پیدا نشد.' })
     const adminProfile = { id: 'admin-profile', name: 'مدیریت اسکیل آپ', phone: 'admin', role: 'student' as const, exp: 0 }
     profileRow(db, adminProfile)
-    db.prepare('INSERT INTO club_posts (id, user_id, category, body, is_announcement, created_at) VALUES (?, ?, ?, ?, 1, ?)').run(uid('post'), adminProfile.id, 'general', body, now())
+    db.prepare('INSERT INTO club_posts (id, user_id, parent_id, course_id, category, body, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(uid('post'), adminProfile.id, parentId, courseId, 'general', body, now())
+    res.status(201).json({ success: true })
+  })
+
+  app.post('/api/admin/club/announcement', requireAdminSession, (req, res) => {
+    const body = text(req.body.body, 1200)
+    const courseId = text(req.body.courseId, 120)
+    if (!body || !courseId || !db.prepare('SELECT 1 FROM courses WHERE id = ?').get(courseId)) return res.status(400).json({ error: 'دوره و متن اعلان الزامی است.' })
+    const adminProfile = { id: 'admin-profile', name: 'مدیریت اسکیل آپ', phone: 'admin', role: 'student' as const, exp: 0 }
+    profileRow(db, adminProfile)
+    db.prepare('INSERT INTO club_posts (id, user_id, course_id, category, body, is_announcement, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)').run(uid('post'), adminProfile.id, courseId, 'general', body, now())
     res.json({ success: true })
   })
 
@@ -822,6 +876,39 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
     })
   })
 
+  app.post('/api/auth/password-reset-requests', (req, res) => {
+    const phone = normalizePhone(req.body.phone)
+    if (!/^09\d{9}$/.test(phone)) return res.status(400).json({ error: 'شماره موبایل معتبر وارد کنید.' })
+    const user = db.prepare("SELECT id FROM users WHERE phone = ? AND role = 'student'").get(phone) as { id: string } | undefined
+    if (user && !db.prepare("SELECT 1 FROM password_reset_requests WHERE user_id = ? AND status = 'pending'").get(user.id)) {
+      db.prepare("INSERT INTO password_reset_requests (id, user_id, phone, status, created_at) VALUES (?, ?, ?, 'pending', ?)")
+        .run(uid('password-reset'), user.id, phone, now())
+    }
+    res.json({ success: true, message: 'اگر این شماره در اسکیل‌آپ حساب داشته باشد، درخواست بازیابی برای مدیر ثبت شد.' })
+  })
+
+  app.get('/api/admin/password-reset-requests', requireAdminSession, (_req, res) => {
+    res.json(db.prepare(`SELECT r.id, r.phone, r.status, r.created_at AS createdAt, r.resolved_at AS resolvedAt,
+      u.name FROM password_reset_requests r JOIN users u ON u.id = r.user_id
+      ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END, r.created_at DESC LIMIT 200`).all())
+  })
+
+  app.post('/api/admin/password-reset-requests/:id/resolve', requireAdminSession, (req, res) => {
+    const request = db.prepare("SELECT * FROM password_reset_requests WHERE id = ? AND status = 'pending'").get(req.params.id) as any
+    if (!request) return res.status(404).json({ error: 'درخواست فعال پیدا نشد.' })
+    const temporaryPassword = String(crypto.randomInt(10000000, 100000000))
+    db.exec('BEGIN')
+    try {
+      db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?').run(hashGeneratedPassword(temporaryPassword), now(), request.user_id)
+      db.prepare("UPDATE password_reset_requests SET status = 'resolved', resolved_at = ?, resolved_by = 'admin' WHERE id = ?").run(now(), request.id)
+      db.exec('COMMIT')
+    } catch (error) {
+      db.exec('ROLLBACK')
+      throw error
+    }
+    res.json({ success: true, credentials: { username: request.phone, temporaryPassword } })
+  })
+
   app.get('/api/admin/learning-dashboard', requireAdminSession, (_req, res) => {
     advanceBots(db)
     const students = db.prepare(`SELECT p.user_id AS userId, p.display_name AS name, p.xp, p.is_bot AS isBot, p.public_label AS publicLabel,
@@ -838,15 +925,27 @@ export function mountPlatformRoutes(app: Express, db: DatabaseSync) {
   })
 
   app.get('/api/admin/learning-dashboard.csv', requireAdminSession, (_req, res) => {
-    const rows = db.prepare(`SELECT p.display_name, p.xp, p.is_bot, COALESCE((SELECT SUM(sp.watched_seconds) FROM session_progress sp WHERE sp.user_id=p.user_id),0) + COALESCE((SELECT SUM(vp.watch_seconds) FROM video_progress vp WHERE vp.user_id=p.user_id),0) watch_seconds,
-      (SELECT COUNT(*) FROM daily_answers a WHERE a.user_id=p.user_id) answers,
-      (SELECT COUNT(*) FROM projects pr WHERE pr.user_id=p.user_id) projects
-      FROM student_profiles p WHERE p.user_id <> 'admin-profile' GROUP BY p.user_id ORDER BY p.display_name`).all() as any[]
-    const esc = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`
-    const lines = [['نام', 'نوع حساب', 'XP', 'Level', 'زمان مشاهده (ثانیه)', 'پاسخ‌ها', 'پروژه‌ها'].map(esc).join(',')]
-    rows.forEach((row) => lines.push([row.display_name, row.is_bot ? 'نمایشی/ربات' : 'واقعی', row.xp, levelForXp(row.xp), row.watch_seconds, row.answers, row.projects].map(esc).join(',')))
+    const rows = db.prepare(`SELECT u.phone AS username, u.phone,
+      COALESCE(fr.age, '') AS age, COALESCE(fr.education_grade, '') AS education_grade,
+      COALESCE(fr.province, '') AS province, COALESCE(fr.programming_experience, '') AS programming_experience,
+      CASE WHEN fr.user_id IS NOT NULL THEN ? ELSE 'قابل استخراج نیست؛ رمز فعلی هش شده است' END AS initial_password,
+      (SELECT COUNT(*) FROM club_posts cp WHERE cp.user_id = u.id AND cp.is_deleted = 0) AS club_messages,
+      (SELECT COUNT(*) FROM projects pr WHERE pr.user_id = u.id) AS projects,
+      COALESCE((SELECT SUM(sp.watched_seconds) FROM session_progress sp WHERE sp.user_id = u.id), 0) +
+        COALESCE((SELECT SUM(vp.watch_seconds) FROM video_progress vp WHERE vp.user_id = u.id), 0) AS watch_seconds,
+      (SELECT COUNT(*) FROM session_progress sp WHERE sp.user_id = u.id AND sp.completed_at IS NOT NULL) +
+        (SELECT COUNT(*) FROM video_progress vp WHERE vp.user_id = u.id AND vp.watched_percent >= 75) AS completed_videos
+      FROM users u LEFT JOIN free_course_registrations fr ON fr.user_id = u.id
+      WHERE u.role = 'student' ORDER BY u.name, u.phone`).all(freeRegistrationPassword) as any[]
+    const esc = (value: unknown) => {
+      const raw = String(value ?? '')
+      const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw
+      return `"${safe.replace(/"/g, '""')}"`
+    }
+    const lines = [['نام کاربری', 'شماره تماس', 'رمز اولیه / وضعیت', 'سن', 'پایه تحصیلی', 'شهر / استان', 'میزان آشنایی با برنامه‌نویسی', 'پیام‌های باشگاه', 'پروژه‌های تحویل‌شده', 'مجموع دقیقه مشاهده', 'ویدئوهای بالای ۷۵٪'].map(esc).join(',')]
+    rows.forEach((row) => lines.push([row.username, row.phone, row.initial_password, row.age, row.education_grade, row.province, row.programming_experience, row.club_messages, row.projects, Math.round(Number(row.watch_seconds || 0) / 60), row.completed_videos].map(esc).join(',')))
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
-    res.setHeader('Content-Disposition', 'attachment; filename="skillup-learning-dashboard.csv"')
+    res.setHeader('Content-Disposition', 'attachment; filename="skillup-users-report.csv"')
     res.send(`\uFEFF${lines.join('\n')}`)
   })
 

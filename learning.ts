@@ -147,6 +147,33 @@ export function mountLearningRoutes(app: Express, db: DatabaseSync) {
     fileFilter: (_req, file, callback) => callback(null, Boolean(extensionKinds[path.extname(file.originalname).toLowerCase()])),
   })
 
+  app.post('/api/admin/courses/:id/cover', requireAdminSession, (req, res) => {
+    const course = db.prepare('SELECT cover_storage_name FROM courses WHERE id = ?').get(req.params.id) as { cover_storage_name?: string } | undefined
+    if (!course) return res.status(404).json({ error: 'دوره پیدا نشد.' })
+    upload.single('file')(req, res, (error) => {
+      if (error) return res.status(400).json({ error: error instanceof Error ? error.message : 'آپلود تصویر ناموفق بود.' })
+      if (!req.file || extensionKinds[path.extname(req.file.originalname).toLowerCase()] !== 'image' || req.file.size > 8 * 1024 * 1024) {
+        if (req.file?.path) fs.rmSync(req.file.path, { force: true })
+        return res.status(400).json({ error: 'فقط تصویر JPG، PNG، WebP یا GIF تا حجم ۸ مگابایت قابل استفاده است.' })
+      }
+      if (course.cover_storage_name) fs.rmSync(path.join(uploadDir, path.basename(course.cover_storage_name)), { force: true })
+      const coverUrl = `/api/course-covers/${encodeURIComponent(req.params.id)}`
+      db.prepare('UPDATE courses SET cover_image = ?, cover_storage_name = ?, cover_mime_type = ?, updated_at = ? WHERE id = ?')
+        .run(coverUrl, req.file.filename, req.file.mimetype, now(), req.params.id)
+      res.json({ success: true, coverImage: coverUrl })
+    })
+  })
+
+  app.get('/api/course-covers/:id', (req, res) => {
+    const course = db.prepare('SELECT cover_storage_name, cover_mime_type FROM courses WHERE id = ? AND is_active = 1').get(req.params.id) as { cover_storage_name?: string; cover_mime_type?: string } | undefined
+    if (!course?.cover_storage_name) return res.status(404).end()
+    const filePath = path.join(uploadDir, path.basename(course.cover_storage_name))
+    if (!fs.existsSync(filePath)) return res.status(404).end()
+    res.setHeader('Content-Type', course.cover_mime_type || 'image/jpeg')
+    res.setHeader('Cache-Control', 'public, max-age=86400')
+    res.sendFile(filePath)
+  })
+
   app.get('/api/admin/course-sessions', requireAdminSession, (req, res) => {
     const courseId = clean(req.query.courseId, 120)
     const rows = db.prepare(`SELECT * FROM course_sessions ${courseId ? 'WHERE course_id = ?' : ''} ORDER BY course_id, order_index, created_at`)

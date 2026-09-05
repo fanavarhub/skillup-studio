@@ -43,6 +43,8 @@ before(async () => {
       SKILLUP_SESSION_SECRET: 'automated-test-session-secret-longer-than-32-characters',
       PUBLIC_BASE_URL: base,
       FREE_SCRATCH_COURSE_ID: 'course-1',
+      GA_MEASUREMENT_ID: 'G-TEST12345',
+      GOOGLE_SITE_VERIFICATION: 'test-verification-token-12345',
     },
     stdio: 'ignore',
   })
@@ -94,6 +96,36 @@ test('magazine index has its own canonical SEO shell', async () => {
   assert.equal(response.status, 200)
   assert.match(body, /<title>مجله اسکیل آپ \| آموزش برنامه‌نویسی و مهارت‌های دیجیتال نوجوانان<\/title>/)
   assert.match(body, /rel="canonical" href="https:\/\/skill-up\.ir\/magazine"/)
+})
+
+test('all public sections and magazine articles have direct crawlable URLs', async () => {
+  const pages = [
+    ['/courses', /canonical" href="https:\/\/skill-up\.ir\/courses/],
+    ['/projects', /canonical" href="https:\/\/skill-up\.ir\/projects/],
+    ['/signup', /canonical" href="https:\/\/skill-up\.ir\/signup/],
+    ['/magazine/why-scratch-for-kids', /"@type":"FAQPage"/],
+    ['/magazine/ai-future-careers', /هوش مصنوعی و آینده شغلی نوجوانان/],
+    ['/magazine/public-speaking-for-teens', /فن بیان و ارائه پروژه/],
+  ]
+  for (const [route, expected] of pages) {
+    const page = await request(route)
+    assert.equal(page.response.status, 200)
+    assert.match(page.body, expected)
+    assert.match(page.body, /google-site-verification/)
+  }
+  const dashboard = await request('/dashboard')
+  assert.match(dashboard.body, /content="noindex, nofollow"/)
+  const missing = await request('/definitely-not-a-page')
+  assert.equal(missing.response.status, 404)
+})
+
+test('Google Analytics is enabled only through the configured measurement ID', async () => {
+  const home = await request('/')
+  assert.match(home.body, /googletagmanager\.com\/gtag\/js\?id=G-TEST12345/)
+  const script = await request('/analytics.js')
+  assert.equal(script.response.status, 200)
+  assert.match(script.body, /G-TEST12345/)
+  assert.match(script.body, /skillup:navigation/)
 })
 
 test('unknown or unprovisioned downloads never fall through to the SPA', async () => {
@@ -315,4 +347,69 @@ test('admin dashboard, rubric grading and certificate verification work', async 
   assert.equal(verification.body.valid, true)
   const qr = await request(`/api/certificates/${certificates.body[0].id}/qr`)
   assert.match(qr.body, /<svg/)
+})
+
+test('club is isolated by course, supports replies, history and admin moderation', async () => {
+  const forbiddenCourse = await request('/api/club?courseId=course-2', auth(studentToken))
+  assert.equal(forbiddenCourse.response.status, 403)
+  const created = await request('/api/club', { method: 'POST', ...auth(studentToken, { courseId: 'course-1', category: 'general', body: 'پیام اصلی باشگاه' }) })
+  assert.equal(created.response.status, 201)
+  const reply = await request('/api/club', { method: 'POST', ...auth(studentToken, { courseId: 'course-1', category: 'general', body: 'پاسخ هنرجو', parentId: created.body.id }) })
+  assert.equal(reply.response.status, 201)
+  const history = await request('/api/club?courseId=course-1&limit=10&offset=0', auth(studentToken))
+  assert.equal(history.body.total >= 2, true)
+  assert.equal(Array.isArray(history.body.posts), true)
+  assert.equal(history.body.posts.find((item) => item.id === reply.body.id).parentId, created.body.id)
+  const adminReply = await request('/api/admin/club/reply', { method: 'POST', ...auth(adminToken, { courseId: 'course-1', parentId: created.body.id, body: 'پاسخ مدیر' }) })
+  assert.equal(adminReply.response.status, 201)
+  const adminList = await request('/api/admin/club?courseId=course-1', auth(adminToken))
+  assert.ok(adminList.body.some((item) => item.body === 'پاسخ مدیر'))
+  await request(`/api/club/${created.body.id}`, { method: 'DELETE', ...auth(adminToken) })
+  const afterDelete = await request('/api/club?courseId=course-1&limit=20', auth(studentToken))
+  assert.ok(!afterDelete.body.posts.some((item) => item.id === created.body.id))
+})
+
+test('course has direct SEO page, editable FAQ and uploaded cover', async () => {
+  const updated = await request('/api/courses/course-1', { method: 'PATCH', ...auth(adminToken, { faqs: [{ question: 'آیا پیش‌نیاز دارد؟', answer: 'خیر' }] }) })
+  assert.equal(updated.response.status, 200)
+  const course = await request('/api/courses/course-1', auth(studentToken))
+  assert.equal(course.body.faqs[0].answer, 'خیر')
+  assert.equal(course.body.isPurchased, true)
+  const form = new FormData()
+  form.append('file', new Blob(['fake-png'], { type: 'image/png' }), 'cover.png')
+  const upload = await request('/api/admin/courses/course-1/cover', { method: 'POST', headers: { Authorization: `Bearer ${adminToken}` }, body: form })
+  assert.equal(upload.response.status, 200)
+  const cover = await fetch(`${base}${upload.body.coverImage}`)
+  assert.equal(cover.status, 200)
+  assert.equal(cover.headers.get('content-type'), 'image/png')
+  const page = await request('/courses/course-1')
+  assert.equal(page.response.status, 200)
+  assert.match(page.body, /"@type":"Course"/)
+  assert.match(page.body, /rel="canonical" href="https:\/\/skill-up\.ir\/courses\/course-1"/)
+  const sitemap = await request('/sitemap.xml')
+  assert.match(sitemap.body, /https:\/\/skill-up\.ir\/courses\/course-1/)
+})
+
+test('forgot password is generic and admin can issue one temporary password', async () => {
+  const unknown = await request('/api/auth/password-reset-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '09129999999' }) })
+  const known = await request('/api/auth/password-reset-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '09120001122' }) })
+  assert.equal(unknown.body.message, known.body.message)
+  const resetRequests = await request('/api/admin/password-reset-requests', auth(adminToken))
+  const item = resetRequests.body.find((entry) => entry.phone === '09120001122' && entry.status === 'pending')
+  assert.ok(item)
+  const resolved = await request(`/api/admin/password-reset-requests/${item.id}/resolve`, { method: 'POST', ...auth(adminToken) })
+  assert.match(resolved.body.credentials.temporaryPassword, /^\d{8}$/)
+  const login = await request('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '09120001122', password: resolved.body.credentials.temporaryPassword }) })
+  assert.equal(login.response.status, 200)
+  const secondResolve = await request(`/api/admin/password-reset-requests/${item.id}/resolve`, { method: 'POST', ...auth(adminToken) })
+  assert.equal(secondResolve.response.status, 404)
+})
+
+test('user CSV contains requested learning fields without password hashes', async () => {
+  const report = await request('/api/admin/learning-dashboard.csv', auth(adminToken))
+  assert.equal(report.response.status, 200)
+  assert.match(report.body, /نام کاربری/)
+  assert.match(report.body, /مجموع دقیقه مشاهده/)
+  assert.match(report.body, /ویدئوهای بالای ۷۵٪/)
+  assert.doesNotMatch(report.body, /[a-f0-9]{24}:[a-f0-9]{64}/)
 })

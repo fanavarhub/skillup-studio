@@ -9,6 +9,7 @@ import type { ConsultationStatus, Course, PaymentRequest, PaymentStatus, Project
 import { createSessionToken, readSession, requireAdminSession, sessionDurationMs } from './auth'
 import { mountPlatformRoutes } from './platform'
 import { mountLearningRoutes } from './learning'
+import { findMagazineArticle, magazineArticles } from './src/articleData'
 
 const app = express()
 const PORT = Number(process.env.PORT || 3000)
@@ -19,6 +20,10 @@ const downloadDir = path.join(dataDir, 'downloads')
 const dbPath = path.join(dataDir, 'skillup-studio.sqlite')
 const adminUsername = process.env.SKILLUP_ADMIN_USERNAME || 'admin'
 const adminPassword = process.env.SKILLUP_ADMIN_PASSWORD || (isProduction ? '' : 'SkillUp@1405')
+const configuredGaId = String(process.env.GA_MEASUREMENT_ID || '').trim().toUpperCase()
+const gaMeasurementId = /^G-[A-Z0-9]{5,20}$/.test(configuredGaId) ? configuredGaId : ''
+const configuredGoogleVerification = String(process.env.GOOGLE_SITE_VERIFICATION || '').trim()
+const googleSiteVerification = /^[A-Za-z0-9_-]{20,100}$/.test(configuredGoogleVerification) ? configuredGoogleVerification : ''
 
 if (isProduction && !adminPassword) throw new Error('SKILLUP_ADMIN_PASSWORD must be configured in production.')
 
@@ -32,10 +37,16 @@ app.use((_req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
-  const scriptPolicy = isProduction ? "script-src 'self'" : "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-  res.setHeader('Content-Security-Policy', `default-src 'self'; img-src 'self' data: https:; media-src 'self' https:; frame-src https://scratch.mit.edu https://www.youtube.com https://www.aparat.com; style-src 'self' 'unsafe-inline'; ${scriptPolicy}; connect-src 'self' ws: wss:`)
+  const scriptPolicy = isProduction ? "script-src 'self' https://www.googletagmanager.com" : "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+  res.setHeader('Content-Security-Policy', `default-src 'self'; img-src 'self' data: https:; media-src 'self' https:; frame-src https://scratch.mit.edu https://www.youtube.com https://www.aparat.com; style-src 'self' 'unsafe-inline'; ${scriptPolicy}; connect-src 'self' ws: wss: https://www.google-analytics.com https://region1.google-analytics.com;`)
   if (isProduction) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
   next()
+})
+
+app.get('/analytics.js', (_req, res) => {
+  if (!gaMeasurementId) return res.status(404).type('text/javascript').send('')
+  res.type('text/javascript').setHeader('Cache-Control', 'public, max-age=3600')
+  res.send(`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}window.gtag=gtag;gtag('js',new Date());gtag('config','${gaMeasurementId}',{anonymize_ip:true});window.__skillupLastGaPath=location.pathname+location.search;window.addEventListener('skillup:navigation',function(event){var next=event.detail&&event.detail.path;if(next&&next!==window.__skillupLastGaPath){window.__skillupLastGaPath=next;gtag('event','page_view',{page_location:location.href,page_path:next,page_title:document.title})}});`)
 })
 
 const db = new DatabaseSync(dbPath)
@@ -157,6 +168,9 @@ ensureColumn('courses', 'capacity', 'INTEGER')
 ensureColumn('courses', 'enrolled', 'INTEGER')
 ensureColumn('courses', 'next_session_at', 'TEXT')
 ensureColumn('courses', 'schedule_text', 'TEXT')
+ensureColumn('courses', 'faq_json', "TEXT NOT NULL DEFAULT '[]'")
+ensureColumn('courses', 'cover_storage_name', 'TEXT')
+ensureColumn('courses', 'cover_mime_type', 'TEXT')
 ensureColumn('projects', 'featured', 'INTEGER NOT NULL DEFAULT 0')
 ensureColumn('projects', 'profile_bio', 'TEXT')
 ensureColumn('projects', 'profile_avatar', 'TEXT')
@@ -256,6 +270,7 @@ function courseFromRow(row: any): Course {
     enrolled: row.enrolled ?? undefined,
     nextSessionAt: row.next_session_at || undefined,
     scheduleText: row.schedule_text || undefined,
+    faqs: parseJson(row.faq_json, []),
     isActive: Boolean(row.is_active),
   }
 }
@@ -632,12 +647,13 @@ app.post('/api/courses', requireAdmin, (req, res) => {
     nextSessionAt: cleanText(req.body.nextSessionAt, 120) || undefined,
     scheduleText: cleanText(req.body.scheduleText, 200) || undefined,
     isActive: true,
+    faqs: Array.isArray(req.body.faqs) ? req.body.faqs.map((item: any) => ({ question: cleanText(item?.question, 240), answer: cleanText(item?.answer, 1200) })).filter((item: any) => item.question && item.answer).slice(0, 30) : [],
   }
 
   db.prepare(`
-    INSERT INTO courses (id, title, description, level, price, duration, cover_image, online_meeting_link, offline_videos, instructor, capacity, enrolled, next_session_at, schedule_text, is_active, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-  `).run(course.id, course.title, course.description, course.level, course.price, course.duration, course.coverImage, course.onlineMeetingLink, JSON.stringify(course.offlineVideos), course.instructor || null, course.capacity || null, course.enrolled || 0, course.nextSessionAt || null, course.scheduleText || null, now(), now())
+    INSERT INTO courses (id, title, description, level, price, duration, cover_image, online_meeting_link, offline_videos, instructor, capacity, enrolled, next_session_at, schedule_text, faq_json, is_active, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+  `).run(course.id, course.title, course.description, course.level, course.price, course.duration, course.coverImage, course.onlineMeetingLink, JSON.stringify(course.offlineVideos), course.instructor || null, course.capacity || null, course.enrolled || 0, course.nextSessionAt || null, course.scheduleText || null, JSON.stringify(course.faqs || []), now(), now())
 
   res.status(201).json(course)
 })
@@ -653,12 +669,13 @@ app.patch('/api/courses/:id', requireAdmin, (req, res) => {
     ...existing,
     ...req.body,
     offlineVideos: Array.isArray(req.body.offlineVideos) ? req.body.offlineVideos : existing.offlineVideos,
+    faqs: Array.isArray(req.body.faqs) ? req.body.faqs.map((item: any) => ({ question: cleanText(item?.question, 240), answer: cleanText(item?.answer, 1200) })).filter((item: any) => item.question && item.answer).slice(0, 30) : existing.faqs,
   }
   db.prepare(`
     UPDATE courses
-    SET title = ?, description = ?, level = ?, price = ?, duration = ?, cover_image = ?, online_meeting_link = ?, offline_videos = ?, instructor = ?, capacity = ?, enrolled = ?, next_session_at = ?, schedule_text = ?, is_active = ?, updated_at = ?
+    SET title = ?, description = ?, level = ?, price = ?, duration = ?, cover_image = ?, online_meeting_link = ?, offline_videos = ?, instructor = ?, capacity = ?, enrolled = ?, next_session_at = ?, schedule_text = ?, faq_json = ?, is_active = ?, updated_at = ?
     WHERE id = ?
-  `).run(nextCourse.title, nextCourse.description, nextCourse.level, nextCourse.price, nextCourse.duration, nextCourse.coverImage, nextCourse.onlineMeetingLink, JSON.stringify(nextCourse.offlineVideos), nextCourse.instructor || null, nextCourse.capacity || null, nextCourse.enrolled || 0, nextCourse.nextSessionAt || null, nextCourse.scheduleText || null, nextCourse.isActive === false ? 0 : 1, now(), req.params.id)
+  `).run(nextCourse.title, nextCourse.description, nextCourse.level, nextCourse.price, nextCourse.duration, nextCourse.coverImage, nextCourse.onlineMeetingLink, JSON.stringify(nextCourse.offlineVideos), nextCourse.instructor || null, nextCourse.capacity || null, nextCourse.enrolled || 0, nextCourse.nextSessionAt || null, nextCourse.scheduleText || null, JSON.stringify(nextCourse.faqs || []), nextCourse.isActive === false ? 0 : 1, now(), req.params.id)
   res.json(nextCourse)
 })
 
@@ -1014,6 +1031,25 @@ app.post('/api/certificates/issue', (req, res) => {
   res.status(201).json(certificate)
 })
 
+app.get('/sitemap.xml', (_req, res) => {
+  const xml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character] || character)
+  const courses = db.prepare('SELECT id, updated_at FROM courses WHERE is_active = 1 ORDER BY created_at').all() as Array<{ id: string; updated_at: string }>
+  const fixed = [
+    { loc: 'https://skill-up.ir/', priority: '1.0', changefreq: 'weekly' },
+    { loc: 'https://skill-up.ir/courses', priority: '0.9', changefreq: 'weekly' },
+    { loc: 'https://skill-up.ir/projects', priority: '0.8', changefreq: 'weekly' },
+    { loc: 'https://skill-up.ir/signup', priority: '0.9', changefreq: 'monthly' },
+    { loc: 'https://skill-up.ir/magazine', priority: '0.8', changefreq: 'weekly' },
+    { loc: 'https://skill-up.ir/magazine/download-scratch', priority: '0.9', changefreq: 'monthly' },
+  ]
+  const urls = [
+    ...fixed.map((item) => `<url><loc>${xml(item.loc)}</loc><changefreq>${item.changefreq}</changefreq><priority>${item.priority}</priority></url>`),
+    ...magazineArticles.map((article) => `<url><loc>${xml(`https://skill-up.ir/magazine/${article.slug}`)}</loc><lastmod>${article.isoDate}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>`),
+    ...courses.map((course) => `<url><loc>${xml(`https://skill-up.ir/courses/${encodeURIComponent(course.id)}`)}</loc><lastmod>${xml(course.updated_at.slice(0, 10))}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`),
+  ]
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`)
+})
+
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   console.error('[SkillUp API]', err)
   res.status(500).json({ error: 'خطای داخلی سرور رخ داد.' })
@@ -1028,18 +1064,41 @@ async function startServer() {
     app.use(vite.middlewares)
   } else {
     const distPath = path.join(rootDir, 'dist')
+    const indexTemplate = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8')
+    const escapeAttribute = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] || character)
+    const analyticsHead = gaMeasurementId ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}"></script>\n    <script defer src="/analytics.js"></script>` : ''
+    const renderPage = (page: { title: string; description: string; canonical: string; image?: string; type?: string; robots?: string; schema?: unknown }) => {
+      const image = page.image || 'https://skill-up.ir/assets/brand/skillup-og.png'
+      const extra = `${googleSiteVerification ? `<meta name="google-site-verification" content="${googleSiteVerification}" />` : ''}\n    ${page.schema ? `<script type="application/ld+json">${JSON.stringify(page.schema).replace(/</g, '\\u003c')}</script>` : ''}\n    ${analyticsHead}`
+      return indexTemplate
+        .replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeAttribute(page.title)}</title>`)
+        .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${escapeAttribute(page.description)}" />`)
+        .replace(/<meta name="robots"[^>]*>/, `<meta name="robots" content="${escapeAttribute(page.robots || 'index, follow, max-image-preview:large')}" />`)
+        .replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${escapeAttribute(page.canonical)}" />`)
+        .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escapeAttribute(page.title)}" />`)
+        .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escapeAttribute(page.description)}" />`)
+        .replace(/<meta property="og:type"[^>]*>/, `<meta property="og:type" content="${escapeAttribute(page.type || 'website')}" />`)
+        .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${escapeAttribute(page.canonical)}" />`)
+        .replace(/<meta property="og:image"[^>]*>/, `<meta property="og:image" content="${escapeAttribute(image)}" />`)
+        .replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${escapeAttribute(page.title)}" />`)
+        .replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${escapeAttribute(page.description)}" />`)
+        .replace(/<meta name="twitter:image"[^>]*>/, `<meta name="twitter:image" content="${escapeAttribute(image)}" />`)
+        .replace('</head>', `    ${extra}\n  </head>`)
+    }
     app.use(express.static(distPath, { maxAge: '7d', index: false }))
-    app.get(['/magazine', '/magazine/'], (_req, res) => {
-      const html = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8')
-        .replace(/<title>[\s\S]*?<\/title>/, '<title>مجله اسکیل آپ | آموزش برنامه‌نویسی و مهارت‌های دیجیتال نوجوانان</title>')
-        .replace(/<meta name="description"[^>]*>/, '<meta name="description" content="مقاله‌ها و راهنماهای کاربردی اسکیل آپ برای آموزش برنامه‌نویسی، اسکرچ، هوش مصنوعی و مهارت‌های دیجیتال کودکان و نوجوانان." />')
-        .replace(/<meta property="og:title"[^>]*>/, '<meta property="og:title" content="مجله اسکیل آپ" />')
-        .replace(/<meta property="og:description"[^>]*>/, '<meta property="og:description" content="راهنماهای کاربردی برنامه‌نویسی و مهارت‌های دیجیتال برای نسل نوجوان." />')
-        .replace('</head>', '    <link rel="canonical" href="https://skill-up.ir/magazine" />\n  </head>')
-      res.type('html').send(html)
-    })
+
+    const staticPages = [
+      { paths: ['/', '/index.html'], title: 'اسکیل آپ | آموزش برنامه‌نویسی و هوش مصنوعی نوجوانان', description: 'آموزش پروژه‌محور برنامه‌نویسی، اسکرچ، هوش مصنوعی و مهارت‌های دیجیتال برای کودکان و نوجوانان همراه با مربی و پروژه واقعی.', canonical: 'https://skill-up.ir/' },
+      { paths: ['/courses', '/courses/'], title: 'دوره‌های برنامه‌نویسی کودکان و نوجوانان | اسکیل آپ', description: 'دوره‌های پروژه‌محور اسکرچ، برنامه‌نویسی، هوش مصنوعی و مهارت‌های دیجیتال اسکیل آپ را مقایسه و مسیر مناسب را انتخاب کنید.', canonical: 'https://skill-up.ir/courses', schema: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'دوره‌های آموزشی اسکیل آپ', url: 'https://skill-up.ir/courses', inLanguage: 'fa-IR' } },
+      { paths: ['/projects', '/projects/'], title: 'پروژه‌های برنامه‌نویسی نوجوانان | اسکیل آپ', description: 'نمونه پروژه‌های واقعی هنرجویان اسکیل آپ در بازی‌سازی، اسکرچ، هوش مصنوعی و تولید محتوای دیجیتال را ببینید.', canonical: 'https://skill-up.ir/projects', schema: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'پروژه‌های نوجوانان اسکیل آپ', url: 'https://skill-up.ir/projects', inLanguage: 'fa-IR' } },
+      { paths: ['/signup', '/signup/'], title: 'ثبت‌نام رایگان دوره مقدماتی اسکرچ | اسکیل آپ', description: 'فرم ثبت‌نام رایگان دوره مقدماتی اسکرچ برای کودکان و نوجوانان؛ اطلاعات را تکمیل کنید تا حساب و دسترسی دوره برایتان فعال شود.', canonical: 'https://skill-up.ir/signup', schema: { '@context': 'https://schema.org', '@type': 'WebPage', name: 'ثبت‌نام رایگان دوره مقدماتی اسکرچ', url: 'https://skill-up.ir/signup', inLanguage: 'fa-IR' } },
+      { paths: ['/magazine', '/magazine/'], title: 'مجله اسکیل آپ | آموزش برنامه‌نویسی و مهارت‌های دیجیتال نوجوانان', description: 'مقاله‌ها و راهنماهای کاربردی اسکیل آپ برای آموزش برنامه‌نویسی، اسکرچ، هوش مصنوعی و مهارت‌های دیجیتال کودکان و نوجوانان.', canonical: 'https://skill-up.ir/magazine', schema: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'مجله اسکیل آپ', url: 'https://skill-up.ir/magazine', inLanguage: 'fa-IR' } },
+      { paths: ['/dashboard', '/dashboard/'], title: 'پنل هنرجو | اسکیل آپ', description: 'فضای شخصی یادگیری هنرجوی اسکیل آپ.', canonical: 'https://skill-up.ir/dashboard', robots: 'noindex, nofollow' },
+      { paths: ['/admin', '/admin/'], title: 'پنل مدیریت | اسکیل آپ', description: 'مدیریت امن پلتفرم اسکیل آپ.', canonical: 'https://skill-up.ir/admin', robots: 'noindex, nofollow' },
+    ]
+    staticPages.forEach((page) => app.get(page.paths, (_req, res) => res.type('html').send(renderPage(page))))
+
     app.get(['/magazine/download-scratch', '/magazine/download-scratch/'], (_req, res) => {
-      const indexPath = path.join(distPath, 'index.html')
       const articleSchema = JSON.stringify({
         '@context': 'https://schema.org',
         '@graph': [
@@ -1065,29 +1124,33 @@ async function startServer() {
           },
         ],
       }).replace(/</g, '\\u003c')
-      const seoHead = `
-    <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link rel="canonical" href="https://skill-up.ir/magazine/download-scratch" />
-    <meta property="og:site_name" content="اسکیل آپ" />
-    <meta property="og:url" content="https://skill-up.ir/magazine/download-scratch" />
-    <meta property="og:image" content="https://skill-up.ir/assets/scratch-download-cover.svg" />
-    <meta property="og:image:alt" content="دانلود اسکرچ و آموزش نصب در اسکیل آپ" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="دانلود اسکرچ + آموزش نصب | اسکیل آپ" />
-    <meta name="twitter:description" content="دانلود مستقیم نسخه ویندوز و اندروید اسکرچ همراه با راهنمای نصب." />
-    <meta name="twitter:image" content="https://skill-up.ir/assets/scratch-download-cover.svg" />
-    <script type="application/ld+json">${articleSchema}</script>`
-      const html = fs.readFileSync(indexPath, 'utf8')
-        .replace(/<title>[\s\S]*?<\/title>/, '<title>دانلود اسکرچ برای ویندوز و اندروید + آموزش نصب | اسکیل آپ</title>')
-        .replace(/<meta name="description"[^>]*>/, '<meta name="description" content="دانلود مستقیم اسکرچ برای ویندوز و اندروید، لینک رسمی Google Play و آموزش نصب قدم‌به‌قدم برای کودکان و نوجوانان." />')
-        .replace(/<meta property="og:title"[^>]*>/, '<meta property="og:title" content="دانلود اسکرچ برای ویندوز و اندروید + آموزش نصب" />')
-        .replace(/<meta property="og:description"[^>]*>/, '<meta property="og:description" content="نسخه مناسب اسکرچ را دانلود کن و قدم‌به‌قدم برای شروع برنامه‌نویسی آماده شو." />')
-        .replace(/<meta property="og:type"[^>]*>/, '<meta property="og:type" content="article" />')
-        .replace('</head>', `${seoHead}\n  </head>`)
-      res.type('html').send(html)
+      res.type('html').send(renderPage({ title: 'دانلود اسکرچ برای ویندوز و اندروید + آموزش نصب | اسکیل آپ', description: 'دانلود مستقیم اسکرچ برای ویندوز و اندروید، لینک رسمی Google Play و آموزش نصب قدم‌به‌قدم برای کودکان و نوجوانان.', canonical: 'https://skill-up.ir/magazine/download-scratch', image: 'https://skill-up.ir/assets/scratch-download-cover.svg', type: 'article', schema: JSON.parse(articleSchema) }))
+    })
+
+    app.get(['/magazine/:slug', '/magazine/:slug/'], (req, res, next) => {
+      const article = findMagazineArticle(cleanText(req.params.slug, 120))
+      if (!article) return next()
+      const canonical = `https://skill-up.ir/magazine/${article.slug}`
+      const image = article.cover.startsWith('http') ? article.cover : `https://skill-up.ir${article.cover}`
+      const schema = { '@context': 'https://schema.org', '@graph': [
+        { '@type': 'Article', headline: article.title, description: article.description, inLanguage: 'fa-IR', datePublished: article.isoDate, dateModified: article.isoDate, mainEntityOfPage: canonical, image, author: { '@type': 'Organization', name: 'تیم آموزش اسکیل آپ', url: 'https://skill-up.ir/' }, publisher: { '@id': 'https://skill-up.ir/#organization' } },
+        { '@type': 'FAQPage', mainEntity: article.faq.map((item) => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) },
+        { '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'خانه', item: 'https://skill-up.ir/' }, { '@type': 'ListItem', position: 2, name: 'مجله', item: 'https://skill-up.ir/magazine' }, { '@type': 'ListItem', position: 3, name: article.title, item: canonical }] },
+      ] }
+      res.type('html').send(renderPage({ title: `${article.title} | مجله اسکیل آپ`, description: article.description, canonical, image, type: 'article', schema }))
+    })
+
+    app.get(['/courses/:id', '/courses/:id/'], (req, res, next) => {
+      const course = db.prepare('SELECT id, title, description, cover_image, instructor, level, price FROM courses WHERE id = ? AND is_active = 1').get(cleanText(req.params.id, 120)) as any
+      if (!course) return next()
+      const canonical = `https://skill-up.ir/courses/${encodeURIComponent(course.id)}`
+      const description = cleanText(course.description, 155)
+      const image = String(course.cover_image || '').startsWith('http') ? course.cover_image : `https://skill-up.ir${course.cover_image || '/assets/brand/skillup-logo-light.png'}`
+      const schema = JSON.stringify({ '@context': 'https://schema.org', '@type': 'Course', name: course.title, description, provider: { '@type': 'Organization', name: 'اسکیل آپ', url: 'https://skill-up.ir/' }, educationalLevel: course.level, image, url: canonical }).replace(/</g, '\\u003c')
+      res.type('html').send(renderPage({ title: `${course.title} | اسکیل آپ`, description, canonical, image, schema: JSON.parse(schema) }))
     })
     app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'))
+      res.status(404).type('html').send('<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><meta name="robots" content="noindex"><title>صفحه پیدا نشد | اسکیل آپ</title><body style="font-family:sans-serif;text-align:center;padding:4rem"><h1>صفحه پیدا نشد</h1><p><a href="/">بازگشت به اسکیل آپ</a></p></body></html>')
     })
   }
 

@@ -19,6 +19,8 @@ export interface Course {
   scheduleText?: string;
   isActive?: boolean;
   sessionCount?: number;
+  isPurchased?: boolean;
+  faqs?: Array<{ question: string; answer: string }>;
 }
 
 export interface StudentProject {

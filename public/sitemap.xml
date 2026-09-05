@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://skill-up.ir/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://skill-up.ir/courses</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://skill-up.ir/projects</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://skill-up.ir/signup</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://skill-up.ir/magazine</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://skill-up.ir/magazine/download-scratch</loc><lastmod>2026-08-27</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://skill-up.ir/magazine/why-scratch-for-kids</loc><lastmod>2026-06-26</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://skill-up.ir/magazine/ai-future-careers</loc><lastmod>2026-06-18</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://skill-up.ir/magazine/public-speaking-for-teens</loc><lastmod>2026-06-05</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>

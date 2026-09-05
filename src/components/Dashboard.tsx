@@ -1,13 +1,14 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Bell, BookOpen, CheckCircle2, FolderKanban, LayoutDashboard, Plus, RefreshCw, Sparkles, Trophy } from 'lucide-react';
+import { Bell, BookOpen, CheckCircle2, FolderKanban, LayoutDashboard, MessageCircleHeart, Plus, RefreshCw, Sparkles, Trophy } from 'lucide-react';
 import { api } from '../api';
 import type { Course, StudentProfile, StudentProject } from '../types';
 import LearningHub from './LearningHub';
 import StudentLearning from './StudentLearning';
 import GuidedTour from './GuidedTour';
+import ClubHub from './ClubHub';
 
 interface DashboardProps { unlockedCourses: string[]; setCurrentTab: (tab: string) => void; studentName?: string; }
-type Tab = 'overview' | 'lessons' | 'projects' | 'growth';
+type Tab = 'overview' | 'lessons' | 'projects' | 'club' | 'growth';
 
 export default function Dashboard({ setCurrentTab, studentName }: DashboardProps) {
   const [tab, setTab] = useState<Tab>('overview');
@@ -50,14 +51,15 @@ export default function Dashboard({ setCurrentTab, studentName }: DashboardProps
   const openEdit = (item: StudentProject) => { setEditing(item); setForm({ title: item.title, description: item.description, category: item.category, scratchId: item.scratchId || '', studentAge: String(item.studentAge) }); setFormOpen(true); };
   const xpEarned = (points: number, message: string) => { setToast(`${message}؛ ${points} امتیاز به حسابت اضافه شد.`); load().catch(() => undefined); };
   const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
-    { id: 'overview', label: 'نمای کلی', icon: LayoutDashboard }, { id: 'lessons', label: 'کلاس‌های من', icon: BookOpen }, { id: 'projects', label: 'پروژه‌ها', icon: FolderKanban }, { id: 'growth', label: 'رشد و لیگ', icon: Trophy },
+    { id: 'overview', label: 'نمای کلی', icon: LayoutDashboard }, { id: 'lessons', label: 'کلاس‌های من', icon: BookOpen }, { id: 'projects', label: 'پروژه‌ها', icon: FolderKanban }, { id: 'club', label: 'باشگاه رفیق‌ها', icon: MessageCircleHeart }, { id: 'growth', label: 'رشد و لیگ', icon: Trophy },
   ];
   const tourSteps = useMemo(() => [
     { target: '[data-tour="student-welcome"]', title: 'این پایگاه شخصی توست', description: 'امتیاز، سطح و اعلان‌های جدیدت همیشه این بالا دیده می‌شوند. هر فعالیت واقعی در دفتر امتیاز ثبت می‌شود.', emoji: '👋', onEnter: () => setTab('overview') },
     { target: '[data-tour="student-overview"]', title: 'قدم بعدی همیشه مشخص است', description: 'در نمای کلی، ادامه مسیر و آخرین فعالیت‌ها را می‌بینی تا لازم نباشد بین صفحه‌ها دنبال کار بعدی بگردی.', emoji: '🗺️', onEnter: () => setTab('overview') },
     { target: '[data-tour="student-lessons"]', title: 'کلاس‌ها و پیشرفت خودکار', description: 'جلسه، ویدئو و فایل‌ها اینجا هستند. با دیدن واقعی ۷۵٪ ویدئو، جلسه خودکار کامل می‌شود و امتیاز می‌گیری.', emoji: '🎬', onEnter: () => setTab('lessons') },
     { target: '[data-tour="student-projects"]', title: 'پروژه بساز و بازخورد بگیر', description: 'پروژه‌ات را بفرست؛ اگر نیاز به اصلاح داشت، نظر مربی را می‌بینی و نسخه بهتر را دوباره ارسال می‌کنی.', emoji: '🛠️', onEnter: () => setTab('projects') },
-    { target: '[data-tour="student-growth"]', title: 'رشد، لیگ و گذرنامه مهارتی', description: 'رتبه هفتگی، سؤال‌های روزانه، اعلان‌ها، باشگاه و Skill Passport در این بخش کنار هم هستند.', emoji: '🏆', onEnter: () => setTab('growth') },
+    { target: '[data-tour="student-club"]', title: 'باشگاه هر دوره', description: 'با هم‌کلاسی‌های همان دوره گفت‌وگو کن، سؤال بپرس و پاسخ‌های قبلی را ببین.', emoji: '🫶', onEnter: () => setTab('club') },
+    { target: '[data-tour="student-growth"]', title: 'رشد، لیگ و گذرنامه مهارتی', description: 'رتبه هفتگی، مأموریت‌ها، اعلان‌ها و Skill Passport در این بخش هستند.', emoji: '🏆', onEnter: () => setTab('growth') },
   ], []);
 
   return <div className="playful-page relative min-h-[75vh] overflow-hidden bg-[#fffaf4] py-7" dir="rtl">
@@ -71,7 +73,7 @@ export default function Dashboard({ setCurrentTab, studentName }: DashboardProps
           <div data-tour="student-stats" className="grid grid-cols-3 gap-2 text-center"><Stat value={profile?.xp || 0} label="امتیاز" tone="amber" /><Stat value={profile?.level || 1} label="سطح" tone="sky" /><Stat value={unread} label="اعلان جدید" tone="pink" /></div>
         </div>
       </header>
-      <nav data-tour="student-nav" className="mb-6 flex gap-2 overflow-x-auto rounded-[22px] border-2 border-white bg-white/90 p-2 shadow-[0_10px_30px_rgba(99,102,241,.10)] backdrop-blur">{tabs.map(({ id, label, icon: Icon }, tabIndex) => <button key={id} onClick={() => setTab(id)} className={`flex shrink-0 items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition ${tab === id ? ['bg-indigo-600','bg-violet-600','bg-rose-500','bg-amber-500'][tabIndex] + ' text-white shadow-lg' : 'text-slate-500 hover:bg-violet-50 hover:text-violet-700'}`}><Icon className="h-4 w-4" />{label}</button>)}</nav>
+      <nav data-tour="student-nav" className="mb-6 flex gap-2 overflow-x-auto rounded-[22px] border-2 border-white bg-white/90 p-2 shadow-[0_10px_30px_rgba(99,102,241,.10)] backdrop-blur">{tabs.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => setTab(id)} className={`flex shrink-0 items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition ${tab === id ? ({ overview: 'bg-indigo-600', lessons: 'bg-violet-600', projects: 'bg-rose-500', club: 'bg-sky-600', growth: 'bg-amber-500' } as Record<Tab, string>)[id] + ' text-white shadow-lg' : 'text-slate-500 hover:bg-violet-50 hover:text-violet-700'}`}><Icon className="h-4 w-4" />{label}</button>)}</nav>
       {toast && <button onClick={() => setToast('')} className="mb-5 flex w-full items-center gap-2 rounded-2xl bg-emerald-50 p-4 text-right text-sm font-bold text-emerald-700"><CheckCircle2 className="h-5 w-5" />{toast}</button>}
       {error && <div className="mb-5 rounded-2xl bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
       {tab === 'overview' && <div data-tour="student-overview" className="grid gap-5 lg:grid-cols-[1fr_320px]">
@@ -83,6 +85,7 @@ export default function Dashboard({ setCurrentTab, studentName }: DashboardProps
         {formOpen && <form onSubmit={submitProject} className="grid gap-3 rounded-3xl border border-indigo-100 bg-white p-5 md:grid-cols-2"><input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="عنوان پروژه" className="input-admin" /><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="input-admin"><option value="Game">بازی‌سازی</option><option value="AI">هوش مصنوعی</option><option value="Communication">ارتباطات</option></select><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="توضیح پروژه و کاری که انجام دادی" className="input-admin min-h-24 md:col-span-2" /><input value={form.scratchId} onChange={(e) => setForm({ ...form, scratchId: e.target.value })} placeholder="شناسه پروژه Scratch (اختیاری)" className="input-admin" dir="ltr" /><input type="number" min="6" max="99" value={form.studentAge} onChange={(e) => setForm({ ...form, studentAge: e.target.value })} className="input-admin" /><div className="flex gap-2 md:col-span-2"><button className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white">{editing ? 'ارسال نسخه اصلاح‌شده' : 'ارسال برای بررسی'}</button><button type="button" onClick={() => setFormOpen(false)} className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-600">انصراف</button></div></form>}
         <div className="grid gap-4 md:grid-cols-2">{projects.map((item) => <article key={item.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex justify-between gap-3"><div><h3 className="font-black text-slate-950">{item.title}</h3><p className="mt-1 text-xs text-slate-400">نسخه {item.submissionVersion || 1}</p></div><Status status={item.status} /></div><p className="mt-3 text-sm leading-7 text-slate-600">{item.description || 'بدون توضیح'}</p>{item.adminNotes && <div className="mt-3 rounded-xl bg-amber-50 p-3 text-xs leading-6 text-amber-800"><strong>نظر مربی:</strong> {item.adminNotes}</div>}{item.rubric && <div className="mt-3 space-y-1">{item.rubric.map((row) => <div key={row.title} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs"><span>{row.title}</span><strong>{row.score} از {row.maxScore}</strong></div>)}</div>}{['pending', 'revision_required'].includes(item.status) && <button onClick={() => openEdit(item)} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700"><RefreshCw className="h-4 w-4" />{item.status === 'revision_required' ? 'اصلاح و ارسال مجدد' : 'ویرایش پروژه'}</button>}</article>)}{!projects.length && <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-400 md:col-span-2">هنوز پروژه‌ای نفرستادی.</div>}</div>
       </section>}
+      {tab === 'club' && <div data-tour="student-club"><ClubHub courses={courses} /></div>}
       {tab === 'growth' && <div data-tour="student-growth"><LearningHub /></div>}
       <GuidedTour steps={tourSteps} storageKey="skillup-tour-student-v1" launcherLabel="راهنمای پنل" />
     </div>

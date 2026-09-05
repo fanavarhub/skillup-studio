@@ -30,6 +30,8 @@ PUBLIC_BASE_URL="https://skill-up.ir"
 SKILLUP_ADMIN_USERNAME="admin"
 SKILLUP_ADMIN_PASSWORD="یک رمز طولانی و یکتا"
 SKILLUP_SESSION_SECRET="یک مقدار تصادفی حداقل ۳۲ کاراکتر"
+GA_MEASUREMENT_ID="G-شناسه-وب-استریم-آنالیتیکس"
+GOOGLE_SITE_VERIFICATION="توکن-اختیاری-تأیید-متا"
 ```
 
 برای ساخت secret می‌توانید از این دستور استفاده کنید:
@@ -78,6 +80,22 @@ curl -fsS http://127.0.0.1:4050/api/health
 
 خروجی health باید شبیه `{"ok":true,"storage":"sqlite"}` باشد.
 
+برای بررسی SEO و مسیرهای عمومی:
+
+```bash
+curl -fsSI https://skill-up.ir/courses
+curl -fsSI https://skill-up.ir/magazine
+curl -fsS https://skill-up.ir/sitemap.xml
+curl -fsS https://skill-up.ir/robots.txt
+```
+
+اگر `GA_MEASUREMENT_ID` تنظیم شده است، این دو دستور نیز باید موفق باشند:
+
+```bash
+curl -fsS https://skill-up.ir/ | grep -F "googletagmanager.com/gtag/js"
+curl -fsS https://skill-up.ir/analytics.js
+```
+
 ## تنظیم Nginx
 
 ```bash
@@ -109,7 +127,9 @@ cd ~/public/skillup-app
 mkdir -p ~/backups/skillup
 tar -czf ~/backups/skillup/skillup-data-$(date +%F-%H%M).tar.gz data
 
-git pull --ff-only origin main
+git fetch origin
+git switch agent/complete-learning-platform
+git pull --ff-only origin agent/complete-learning-platform
 docker compose up -d --build
 docker compose ps
 curl -fsS http://127.0.0.1:4050/api/health

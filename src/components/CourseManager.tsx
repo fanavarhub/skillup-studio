@@ -3,8 +3,10 @@ import { BookPlus, Check, ChevronLeft, FileUp, Plus, Save, Trash2, Video } from 
 import type { Course, LearningSession } from '../types';
 
 type AdminFetch = (url: string, options?: RequestInit) => Promise<Response>;
-const emptyCourse = { title: '', description: '', level: 'مقدماتی', price: '۰ تومان', duration: '۸ جلسه', coverImage: '/assets/legacy/unsplash-1517694712202-14dd9538aa97-q60.jpg', instructor: '', capacity: '100', scheduleText: '' };
+const emptyCourse = { title: '', description: '', level: 'مقدماتی', price: '۰ تومان', duration: '۸ جلسه', instructor: '', capacity: '100', scheduleText: '', faqText: '' };
 const emptyLesson = { title: '', description: '', xpReward: '10', durationMinutes: '', isPublished: true };
+const parseFaqs = (value: string) => value.split('\n').map((line) => { const [question, ...answer] = line.split('|'); return { question: question?.trim(), answer: answer.join('|').trim() }; }).filter((item) => item.question && item.answer);
+const faqText = (course: Course) => (course.faqs || []).map((item) => `${item.question} | ${item.answer}`).join('\n');
 
 export default function CourseManager({ adminFetch }: { adminFetch: AdminFetch }) {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -16,6 +18,8 @@ export default function CourseManager({ adminFetch }: { adminFetch: AdminFetch }
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [editFaqs, setEditFaqs] = useState('');
 
   const loadCourses = async () => {
     const response = await adminFetch('/api/courses');
@@ -23,6 +27,7 @@ export default function CourseManager({ adminFetch }: { adminFetch: AdminFetch }
   };
   const loadSessions = async (course: Course) => {
     setSelected(course);
+    setEditFaqs(faqText(course));
     const response = await adminFetch(`/api/admin/course-sessions?courseId=${encodeURIComponent(course.id)}`);
     if (response.ok) setSessions(await response.json());
   };
@@ -31,10 +36,12 @@ export default function CourseManager({ adminFetch }: { adminFetch: AdminFetch }
   const createCourse = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      const response = await adminFetch('/api/courses', { method: 'POST', body: JSON.stringify({ ...courseForm, capacity: Number(courseForm.capacity), enrolled: 0, onlineMeetingLink: '', nextSessionAt: '', isActive: true, offlineVideos: [] }) });
+      const { faqText: rawFaqs, ...details } = courseForm;
+      const response = await adminFetch('/api/courses', { method: 'POST', body: JSON.stringify({ ...details, coverImage: '/assets/legacy/unsplash-1517694712202-14dd9538aa97-q60.jpg', faqs: parseFaqs(rawFaqs), capacity: Number(courseForm.capacity), enrolled: 0, onlineMeetingLink: '', nextSessionAt: '', isActive: true, offlineVideos: [] }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'ساخت دوره انجام نشد.');
-      setCourseForm(emptyCourse); setShowCourseForm(false); setMessage('دوره جدید ساخته شد.'); await loadCourses();
+      if (coverFile) { const form = new FormData(); form.append('file', coverFile); const upload = await adminFetch(`/api/admin/courses/${data.id}/cover`, { method: 'POST', body: form, headers: {} }); const uploadData = await upload.json(); if (!upload.ok) throw new Error(uploadData.error || 'دوره ساخته شد اما تصویر آپلود نشد.'); }
+      setCourseForm(emptyCourse); setCoverFile(null); setShowCourseForm(false); setMessage('دوره جدید ساخته شد.'); await loadCourses();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'خطا در ساخت دوره'); } finally { setBusy(false); }
   };
 
@@ -77,6 +84,16 @@ export default function CourseManager({ adminFetch }: { adminFetch: AdminFetch }
     if (response.ok && selected) loadSessions(selected);
   };
 
+  const saveCoursePresentation = async () => {
+    if (!selected) return; setBusy(true); setError('');
+    try {
+      const response = await adminFetch(`/api/courses/${selected.id}`, { method: 'PATCH', body: JSON.stringify({ faqs: parseFaqs(editFaqs) }) });
+      const data = await response.json(); if (!response.ok) throw new Error(data.error || 'سؤالات ذخیره نشدند.');
+      if (coverFile) { const form = new FormData(); form.append('file', coverFile); const upload = await adminFetch(`/api/admin/courses/${selected.id}/cover`, { method: 'POST', body: form, headers: {} }); const uploadData = await upload.json(); if (!upload.ok) throw new Error(uploadData.error || 'تصویر آپلود نشد.'); }
+      setCoverFile(null); setMessage('صفحه معرفی دوره به‌روزرسانی شد.'); await loadCourses();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'ذخیره انجام نشد.'); } finally { setBusy(false); }
+  };
+
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h2 className="text-2xl font-black text-slate-950">دوره‌ها و جلسه‌ها</h2><p className="mt-1 text-sm text-slate-500">محتوا و امتیاز هر جلسه را از یک‌جا مدیریت کنید.</p></div>
@@ -90,7 +107,8 @@ export default function CourseManager({ adminFetch }: { adminFetch: AdminFetch }
       <textarea required value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} placeholder="توضیح کوتاه و ساده دوره" className="input-admin md:col-span-2 min-h-24" />
       <input value={courseForm.price} onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })} placeholder="قیمت" className="input-admin" />
       <input value={courseForm.duration} onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })} placeholder="مدت دوره" className="input-admin" />
-      <input value={courseForm.coverImage} onChange={(e) => setCourseForm({ ...courseForm, coverImage: e.target.value })} placeholder="نشانی تصویر کاور" className="input-admin md:col-span-2" dir="ltr" />
+      <label className="rounded-2xl border-2 border-dashed border-indigo-200 bg-white p-4 text-xs font-bold text-indigo-700 md:col-span-2">تصویر کاور دوره<input required type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => setCoverFile(event.target.files?.[0] || null)} className="mt-2 block w-full text-xs text-slate-500" /></label>
+      <label className="text-xs font-bold text-slate-600 md:col-span-2">سؤالات متداول صفحه دوره <span className="font-normal text-slate-400">(هر خط: سؤال | پاسخ)</span><textarea value={courseForm.faqText} onChange={(event) => setCourseForm({ ...courseForm, faqText: event.target.value })} placeholder={'این دوره برای چه سنی مناسب است؟ | برای نوجوانان ۸ تا ۱۷ سال\nآیا پیش‌نیاز دارد؟ | خیر، از پایه شروع می‌کنیم.'} className="input-admin mt-2 min-h-28 w-full" /></label>
       <button disabled={busy} className="rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white md:col-span-2">{busy ? 'در حال ساخت…' : 'ساخت دوره'}</button>
     </form>}
     <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
@@ -101,6 +119,7 @@ export default function CourseManager({ adminFetch }: { adminFetch: AdminFetch }
       <main className="space-y-4">
         {!selected && <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-400">یک دوره را برای مدیریت جلسه‌ها انتخاب کنید.</div>}
         {selected && <>
+          <section className="rounded-3xl border border-sky-100 bg-sky-50/50 p-5"><h3 className="font-black text-sky-950">صفحه معرفی و لینک مستقیم دوره</h3><a href={`/courses/${encodeURIComponent(selected.id)}`} target="_blank" rel="noreferrer" className="mt-2 block break-all text-xs font-bold text-sky-700 underline">{window.location.origin}/courses/{selected.id}</a><div className="mt-4 grid gap-3 md:grid-cols-2"><label className="rounded-2xl border-2 border-dashed border-sky-200 bg-white p-4 text-xs font-bold text-sky-700">تغییر تصویر کاور<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => setCoverFile(event.target.files?.[0] || null)} className="mt-2 block w-full text-xs text-slate-500" /></label><label className="text-xs font-bold text-slate-600">FAQ دوره (هر خط: سؤال | پاسخ)<textarea value={editFaqs} onChange={(event) => setEditFaqs(event.target.value)} className="input-admin mt-2 min-h-28 w-full bg-white" /></label></div><button type="button" disabled={busy} onClick={saveCoursePresentation} className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-3 text-xs font-black text-white"><Save className="h-4 w-4" />ذخیره صفحه معرفی</button></section>
           <form onSubmit={createSession} className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-5 md:grid-cols-2">
             <h3 className="font-black text-slate-900 md:col-span-2"><Plus className="ml-2 inline h-5 w-5 text-indigo-600" />جلسه جدید برای {selected.title}</h3>
             <input required value={lessonForm.title} onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })} placeholder="عنوان جلسه" className="input-admin" />

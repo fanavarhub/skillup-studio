@@ -85,8 +85,7 @@ export default function CoursesList({ onUnlockCourse, unlockedCourses, setCurren
   };
 
   const openCourse = (course: Course) => {
-    resetPaymentForm();
-    setActiveCourse(course);
+    setCurrentTab(`course:${course.id}`);
   };
 
   const handleSubmitReceipt = async () => {
@@ -210,14 +209,15 @@ export default function CoursesList({ onUnlockCourse, unlockedCourses, setCurren
                         <span className="text-base font-sans font-bold text-gray-900">{course.price}</span>
                       </div>
 
-                      <button
-                        onClick={() => openCourse(course)}
+                      <a
+                        href={`/courses/${encodeURIComponent(course.id)}`}
+                        onClick={(event) => { event.preventDefault(); openCourse(course); }}
                         className={`px-4.5 py-2.5 font-sans font-bold text-xs rounded-2xl transition-all cursor-pointer ${
                           isUnlocked ? 'bg-emerald-50 text-emerald-700 ring-2 ring-emerald-100' : 'bg-gradient-to-l from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-violet-200'
                         }`}
                       >
-                        {isUnlocked ? 'فعال در پنل' : 'مشاهده و ارسال فیش'}
-                      </button>
+                        {isUnlocked ? 'صفحه دوره' : 'مشاهده جزئیات دوره'}
+                      </a>
                     </div>
                   </div>
                 </div>

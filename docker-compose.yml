@@ -15,6 +15,8 @@ services:
       APP_URL: ${APP_URL:-https://skill-up.ir}
       FREE_SCRATCH_COURSE_ID: ${FREE_SCRATCH_COURSE_ID:-course-1}
       FREE_SCRATCH_REPLACED_COURSE_ID: ${FREE_SCRATCH_REPLACED_COURSE_ID:-}
+      GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-}
+      GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
     volumes:
       - ./data:/app/data
     ports:

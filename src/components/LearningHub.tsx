@@ -1,7 +1,7 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { Clock3, Medal, MessageCircle, Send, ShieldCheck, Sparkles } from 'lucide-react';
+import { Clock3, Medal, ShieldCheck } from 'lucide-react';
 import { authenticatedFetch } from '../api';
 
 type Profile = { userId: string; studentName: string; avatar?: string; xp: number; level: number; levelXp: number; nextLevelXp: number; progress: number; tier: string };
@@ -9,7 +9,6 @@ type Leader = { rank: number; userId: string; name: string; weeklyXp: number };
 type Mission = { id: string; question: string; options: string[]; courseTitle: string; xpReward: number; levelBand: string };
 type MissionData = { day: string; level: number; mission: Mission | null; completed: boolean; answer?: { selectedIndex: number; isCorrect: number } };
 type Notice = { id: string; title: string; body: string; readAt?: string; createdAt: string };
-type ClubPost = { id: string; parentId?: string; category: string; body: string; author: string; isAnnouncement: boolean; createdAt: string };
 type Passport = { owner: string; level: number; tier: string; xp: number; projects: Array<{ id: string; title: string; status: string; score: number }>; certificates: Array<{ id: string; courseTitle: string; verificationCode: string }> };
 
 export default function LearningHub() {
@@ -18,22 +17,18 @@ export default function LearningHub() {
   const [missionData, setMissionData] = useState<MissionData | null>(null);
   const [answerResult, setAnswerResult] = useState<{ correct: boolean; explanation?: string; xpAwarded?: number } | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
-  const [posts, setPosts] = useState<ClubPost[]>([]);
   const [passport, setPassport] = useState<Passport | null>(null);
-  const [clubBody, setClubBody] = useState('');
-  const [replyTo, setReplyTo] = useState<string | null>(null);
 
   const load = async () => {
-    const [p, l, m, n, c, s] = await Promise.all([
+    const [p, l, m, n, s] = await Promise.all([
       authenticatedFetch('/api/student-profile'), authenticatedFetch('/api/leaderboard'),
       authenticatedFetch('/api/daily-questions'), authenticatedFetch('/api/notifications'),
-      authenticatedFetch('/api/club'), authenticatedFetch('/api/skill-passport'),
+      authenticatedFetch('/api/skill-passport'),
     ]);
     if (p.ok) setProfile(await p.json());
     if (l.ok) setLeaders((await l.json()).entries);
     if (m.ok) setMissionData(await m.json());
     if (n.ok) setNotices(await n.json());
-    if (c.ok) setPosts(await c.json());
     if (s.ok) setPassport(await s.json());
   };
 
@@ -50,13 +45,6 @@ export default function LearningHub() {
       setMissionData((current) => current ? { ...current, completed: true } : current);
       load().catch(console.error);
     }
-  };
-
-  const sendPost = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!clubBody.trim()) return;
-    const response = await authenticatedFetch('/api/club', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: 'general', body: clubBody, parentId: replyTo }) });
-    if (response.ok) { setClubBody(''); setReplyTo(null); load().catch(console.error); }
   };
 
   const markRead = async (id: string) => {
@@ -101,10 +89,6 @@ export default function LearningHub() {
       </Panel>
     </div>
 
-    <Panel title="باشگاه رفیق‌ها" icon={<MessageCircle className="h-5 w-5 text-cyan-600" />}>
-      <form onSubmit={sendPost} className="mb-5 flex flex-col gap-2 sm:flex-row"><input value={clubBody} onChange={(event) => setClubBody(event.target.value)} placeholder={replyTo ? 'پاسخت را بنویس…' : 'یک پیام مفید برای بقیه بنویس…'} className="input-admin flex-1" /><button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-5 py-2 text-xs font-bold text-white"><Send className="h-4 w-4" />ارسال</button></form>
-      <div className="grid gap-3 md:grid-cols-2">{posts.slice(0, 6).map((post) => <article key={post.id} className={`rounded-2xl border p-4 ${post.isAnnouncement ? 'border-amber-200 bg-amber-50' : 'border-slate-100 bg-slate-50'}`}><div className="flex items-center gap-2"><b className="text-sm">{post.author}</b>{post.isAnnouncement && <Sparkles className="h-4 w-4 text-amber-500" />}</div><p className="mt-2 text-xs leading-6">{post.body}</p>{!post.isAnnouncement && <button onClick={() => setReplyTo(post.id)} className="mt-2 text-[11px] font-bold text-indigo-600">پاسخ</button>}</article>)}</div>
-    </Panel>
   </div>;
 }
 

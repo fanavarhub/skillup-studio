@@ -1,4 +1,4 @@
-import { GraduationCap, Youtube, Instagram, MessageSquare, Send } from 'lucide-react';
+import { Youtube, Instagram, MessageSquare, Send } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -9,15 +9,7 @@ export default function Footer() {
           
           {/* Brand Intro Column */}
           <div className="md:col-span-5 space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="font-sans font-extrabold text-xl text-white block">اسکیل آپ</span>
-                <span className="font-sans text-xs text-indigo-400 font-medium block">Skill Up</span>
-              </div>
-            </div>
+            <img src="/assets/brand/skillup-logo-dark.png" alt="اسکیل آپ" className="h-16 w-44 rounded-xl object-cover object-center" />
             
             <p className="font-sans text-xs sm:text-sm text-slate-400 leading-relaxed max-w-sm">
               اسکیل آپ پلتفرم جامع و تخصصی آموزش و توسعه مهارتی نوجوانان ۸ تا ۱۷ سال است. رسالت ما توانمندسازی عملی دانش‌آموزان با یادگیری پروژه‌محور و ساخت نمونه‌کارهای واقعی است.
@@ -29,16 +21,16 @@ export default function Footer() {
             <h4 className="font-sans font-bold text-white text-sm">🌐 صفحات پلتفرم</h4>
             <ul className="space-y-2.5">
               <li>
-                <span className="font-sans text-xs text-slate-400 hover:text-white transition-all">صفحه نخست اسکیل آپ</span>
+                <a href="/" className="font-sans text-xs text-slate-400 hover:text-white transition-all">صفحه نخست اسکیل آپ</a>
               </li>
               <li>
-                <span className="font-sans text-xs text-slate-400 hover:text-white transition-all">دوره‌های یادگیری کارگاهی</span>
+                <a href="/courses" className="font-sans text-xs text-slate-400 hover:text-white transition-all">دوره‌های یادگیری کارگاهی</a>
               </li>
               <li>
-                <span className="font-sans text-xs text-slate-400 hover:text-white transition-all">پروژه‌های تفریحی و بازی‌ها</span>
+                <a href="/projects" className="font-sans text-xs text-slate-400 hover:text-white transition-all">پروژه‌های تفریحی و بازی‌ها</a>
               </li>
               <li>
-                <span className="font-sans text-xs text-slate-400 hover:text-white transition-all">مستندات و مجله آموزشی</span>
+                <a href="/magazine" className="font-sans text-xs text-slate-400 hover:text-white transition-all">مستندات و مجله آموزشی</a>
               </li>
             </ul>
           </div>

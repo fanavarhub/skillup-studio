@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { ExternalLink, Calendar, User } from 'lucide-react';
+import { magazineArticles } from '../articleData';
 
 export default function Articles({ navigate }: { navigate: (tab: string) => void }) {
   useEffect(() => {
@@ -25,7 +26,7 @@ export default function Articles({ navigate }: { navigate: (tab: string) => void
     };
   }, []);
 
-  const mockArticles = [
+  const articles = [
     {
       id: 'download-scratch',
       title: 'دانلود اسکرچ برای ویندوز و اندروید + آموزش نصب',
@@ -35,33 +36,7 @@ export default function Articles({ navigate }: { navigate: (tab: string) => void
       cover: '/assets/scratch-download-cover.svg',
       tab: 'scratch-download',
     },
-    {
-      id: 1,
-      title: 'چرا اسکرچ (Scratch) بهترین زبان برای شروع برنامه‌نویسی کودکان است؟',
-      excerpt: 'بررسی علمی چگونگی تقویت تفکر الگوریتمی، ریاضیات بازی و حل مسئله در نوجوانان با استفاده از برنامه‌نویسی بلوکی.',
-      date: '۱۴۰۵/۰۴/۰۵',
-      author: 'مهندس رضایی (منتور ارشد)',
-      cover: '/assets/legacy/unsplash-1607604276583-eef5d076aa5f-q60.jpg',
-      tab: '',
-    },
-    {
-      id: 2,
-      title: 'نقش هوش مصنوعی در آینده شغلی نسل جدید (Future Makers)',
-      excerpt: 'کودکانی که امروز چگونگی کار با مدل‌های هوشمند، پرامپت‌نویسی درست و تحلیل داده را آموزش می‌بینند، فردا رهبران خلاق تکنولوژی خواهند بود.',
-      date: '۱۴۰۵/۰۳/۲۸',
-      author: 'دکتر حسینی (روانشناس تربیتی)',
-      cover: '/assets/service-ai-robot.webp',
-      tab: '',
-    },
-    {
-      id: 3,
-      title: 'چطور فن بیان و مهارت ارائه خلاق را در نوجوانان تقویت کنیم؟',
-      excerpt: 'آموزش برنامه‌نویسی بدون داشتن اعتمادبه‌نفس دفاع از پروژه ناقص است. راهکارهای طلایی برای غلبه بر خجالت و داشتن سخنرانی‌های پرقدرت.',
-      date: '۱۴۰۵/۰۳/۱۵',
-      author: 'استاد علوی (منتور توسعه فردی)',
-      cover: '/assets/legacy/unsplash-1475721027785-f74eccf877e2-q60.jpg',
-      tab: '',
-    }
+    ...magazineArticles.map((article) => ({ id: article.slug, title: article.title, excerpt: article.description, date: article.date, author: 'تیم آموزش اسکیل آپ', cover: article.cover, tab: `article:${article.slug}` })),
   ];
 
   return (
@@ -77,7 +52,7 @@ export default function Articles({ navigate }: { navigate: (tab: string) => void
 
         {/* Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {mockArticles.map((art) => (
+          {articles.map((art) => (
             <article
               key={art.id}
               className="bg-gray-50 rounded-3xl border border-gray-100 overflow-hidden shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between text-right"
@@ -117,7 +92,7 @@ export default function Articles({ navigate }: { navigate: (tab: string) => void
 
                 {/* Read more button link */}
                 <div className="border-t border-gray-100/80 pt-4 mt-6">
-                  {art.tab ? <a href="/magazine/download-scratch" onClick={(event) => { event.preventDefault(); navigate(art.tab); }} className="font-sans text-xs font-bold inline-flex items-center gap-1.5 text-indigo-600 hover:underline" aria-label={`مطالعه مقاله ${art.title}`}><span>مطالعه کامل مقاله</span><ExternalLink className="w-3.5 h-3.5" /></a> : <span className="font-sans inline-flex cursor-not-allowed items-center gap-1.5 text-xs font-bold text-slate-400"><span>مطالعه کامل مقاله</span><ExternalLink className="w-3.5 h-3.5" /></span>}
+                  <a href={art.tab === 'scratch-download' ? '/magazine/download-scratch' : `/magazine/${art.tab.replace('article:', '')}`} onClick={(event) => { event.preventDefault(); navigate(art.tab); }} className="font-sans text-xs font-bold inline-flex items-center gap-1.5 text-indigo-600 hover:underline" aria-label={`مطالعه مقاله ${art.title}`}><span>مطالعه کامل مقاله</span><ExternalLink className="w-3.5 h-3.5" /></a>
                 </div>
               </div>
             </article>
