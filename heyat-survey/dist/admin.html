@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow"><meta name="theme-color" content="#071e1b">
+  <title>مدیریت نظرسنجی | هیئت شهدای مدافع حرم اهل‌بیت</title>
+  <link rel="icon" href="./assets/heyat-logo-gold.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="./admin.css">
+  <script src="./admin.js" type="module"></script>
+</head>
+<body class="admin-body">
+  <header class="admin-header"><a href="./" class="admin-brand"><img src="./assets/heyat-logo-gold.png" alt="" width="64" height="58"><span>هیئت شهدای مدافع حرم اهل‌بیت</span></a><a class="text-link" href="./">مشاهده فرم</a></header>
+  <main class="admin-main">
+    <section id="login-panel" class="login-panel" aria-labelledby="login-title" hidden>
+      <p class="login-devotional">سلام الله علیها</p><h1 id="login-title">ورود به مدیریت</h1>
+      <p class="admin-muted">گزارش‌ها، نظرها و خروجی اکسل نظرسنجی مراسم</p>
+      <form id="login-form" novalidate><div class="field"><label for="admin-password">رمز مدیریت</label><input id="admin-password" type="password" autocomplete="current-password" maxlength="200" required></div><p id="login-error" class="field-error" role="alert" hidden></p><button id="login-button" type="submit" class="submit-button">ورود به مدیریت</button></form>
+    </section>
+    <p id="loading-message" class="loading-message" role="status">در حال بارگذاری…</p>
+    <section id="dashboard" hidden aria-labelledby="report-title">
+      <div class="report-heading"><div><h1 id="report-title">گزارش نظرسنجی مراسم</h1><p class="admin-muted">مراسم پنج‌روزه عزاداری، گردان ۱۳ امام حسین علیه‌السلام</p></div><div class="report-actions"><button id="refresh-button" class="secondary-button" type="button">به‌روزرسانی</button><a class="export-button" id="export-link" href="./api/admin/export.xlsx">دریافت فایل اکسل</a><button id="logout-button" type="button" class="text-button">خروج</button></div></div>
+      <p id="dashboard-error" class="form-error" role="alert" hidden></p>
+      <div id="metric-grid" class="metric-grid"></div>
+      <p class="analysis-note">درصدهای رضایت بر پایهٔ پاسخ‌های معتبر هر بخش محاسبه می‌شوند. «تجربه نکردم»، «امکان ارزیابی ندارم» و سؤال‌های بی‌پاسخ، امتیاز صفر محسوب نمی‌شوند. نتایج، نظر افرادی است که در نظرسنجی شرکت کرده‌اند.</p>
+      <section class="report-section" aria-labelledby="satisfaction-title"><div class="report-section-heading"><h2 id="satisfaction-title">رضایت از بخش‌های مراسم</h2><span>توزیع پاسخ‌ها و تعداد پاسخ معتبر</span></div><div id="satisfaction-grid" class="chart-grid"></div></section>
+      <section class="report-section" aria-labelledby="priorities-title"><div class="report-section-heading"><h2 id="priorities-title">اولویت‌های بهبود</h2><span id="priority-population"></span></div><p class="admin-muted small-copy">هر نفر می‌تواند حداکثر سه مورد انتخاب کند؛ مجموع درصدها ممکن است بیشتر از ۱۰۰ باشد.</p><div id="priorities-chart" class="priority-chart"></div></section>
+      <section class="report-section" aria-labelledby="preferences-title"><div class="report-section-heading"><h2 id="preferences-title">ساعت، مدت و تعداد</h2><span>گزینهٔ «مناسب» جهت مطلوب این پرسش‌هاست.</span></div><div id="preferences-grid" class="chart-grid"></div></section>
+      <section class="report-section" aria-labelledby="attendance-title"><div class="report-section-heading"><h2 id="attendance-title">میزان حضور پاسخ‌دهندگان</h2></div><div id="attendance-chart"></div></section>
+      <section class="report-section" aria-labelledby="responses-title"><div class="report-section-heading"><h2 id="responses-title">پاسخ‌ها و نظرهای ثبت‌شده</h2><span>این بخش فقط برای مدیر قابل مشاهده است.</span></div><div class="response-toolbar"><label for="response-search">جست‌وجو در پاسخ‌ها</label><input id="response-search" type="search" placeholder="نام، شماره تماس یا بخشی از نظر" maxlength="100" autocomplete="off"></div><div id="responses-table" class="table-scroll"></div><div class="pagination"><button id="previous-page" class="secondary-button" type="button">صفحه قبل</button><span id="page-label"></span><button id="next-page" class="secondary-button" type="button">صفحه بعد</button></div></section>
+      <p class="admin-footer">فایل اکسل شامل پاسخ‌های کامل، امتیازها، خلاصه، اولویت‌ها و توزیع پاسخ‌هاست. مشخصات تماس فقط در برگهٔ پاسخ‌های کامل درج می‌شود.</p>
+    </section>
+  </main>
+</body>
+</html>

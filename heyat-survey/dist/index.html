@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#071e1b">
+    <meta name="description" content="نظرسنجی مراسم پنج‌روزه عزاداری هیئت شهدای مدافع حرم اهل‌بیت علیهم‌السلام، گردان ۱۳ امام حسین علیه‌السلام">
+    <meta name="robots" content="noindex, nofollow">
+    <title>نظرسنجی مراسم | هیئت شهدای مدافع حرم اهل‌بیت</title>
+    <link rel="icon" type="image/png" href="./assets/heyat-logo-gold.png">
+    <link rel="preload" href="./assets/fonts/Vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="./assets/fonts/Amiri-Regular.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./app.js" type="module"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#survey-form">رفتن به فرم نظرسنجی</a>
+    <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <symbol id="icon-lock" viewBox="0 0 24 24">
+          <rect x="5" y="10" width="14" height="11" rx="3"/>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>
+        </symbol>
+        <symbol id="icon-close" viewBox="0 0 24 24"><path d="m7 7 10 10M7 17 17 7"/></symbol>
+        <symbol id="icon-info" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/>
+        </symbol>
+      </defs>
+    </svg>
+
+    <header class="masthead">
+      <div class="masthead-inner">
+        <a class="brand" href="#top" aria-label="بازگشت به ابتدای فرم">
+          <img class="brand-logo" src="./assets/heyat-logo-gold.png" alt="" width="64" height="58">
+          <span>هیئت شهدای مدافع حرم <span class="brand-extra">اهل‌بیت علیهم‌السلام</span></span>
+        </a>
+        <div class="header-status">
+          <span class="completion-count" id="completion-count" aria-live="polite" aria-atomic="true">۰ از ۱۴ پرسش</span>
+        </div>
+      </div>
+      <progress id="completion-progress" value="0" max="14" aria-label="تعداد پرسش‌های انتخابی پاسخ‌داده‌شده"></progress>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="page-title">
+        <svg class="mihrab" viewBox="0 0 580 410" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="arch-ink" x1="290" y1="5" x2="290" y2="405" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#d5b777" stop-opacity=".48"/><stop offset="1" stop-color="#d5b777" stop-opacity="0"/>
+            </linearGradient>
+            <g id="arch-vine">
+              <path d="M92 298c-39-44-37-90-6-123 16-17 26-35 25-55M90 242c-29-10-39-27-34-45 19 5 32 19 34 45ZM79 210c19-22 35-24 47-15-8 18-23 23-47 15ZM99 167c-18-16-20-31-12-43 17 9 21 22 12 43Z"/>
+              <path d="m72 293-9 9 9 9 9-9ZM113 102l-5-10 5-10 5 10Z"/>
+            </g>
+          </defs>
+          <path d="M100 405V224c0-73 42-101 109-139 42-23 67-45 81-69 14 24 39 46 81 69 67 38 109 66 109 139v181" stroke="url(#arch-ink)"/>
+          <path d="M113 405V227c0-67 39-93 101-128 37-21 62-42 76-63 14 21 39 42 76 63 62 35 101 61 101 128v178" stroke="url(#arch-ink)" opacity=".45"/>
+          <g stroke="#d5b777" stroke-width=".8" opacity=".2"><use href="#arch-vine"/><use href="#arch-vine" transform="translate(580 0) scale(-1 1)"/></g>
+          <path d="m290 2 4 6-4 6-4-6Z" fill="#d5b777" opacity=".65"/>
+        </svg>
+        <div class="hero-content">
+          <p class="devotional devotional-fatemeh" lang="ar"><span class="devotional-main">السلام علیک یا فاطمه الزهرا</span> <span class="devotional-salutation">سلام الله علیها</span></p>
+          <img class="hero-logo" src="./assets/heyat-logo-gold.png" alt="لوگوی هیئت شهدای مدافع حرم اهل‌بیت" width="208" height="186" fetchpriority="high" decoding="async">
+          <p class="event-name">هیئت شهدای مدافع حرم اهل‌بیت <span>علیهم‌السلام</span></p>
+          <p class="battalion">گردان ۱۳ امام حسین علیه‌السلام</p>
+          <div class="identity-divider" aria-hidden="true"></div>
+          <h1 id="page-title">از این پنج روز، برایمان بگویید</h1>
+          <p class="hero-description">نظرسنجی مراسم پنج‌روزه عزاداری<br>تجربه و پیشنهاد شما به بهترشدن محفل بعدی کمک می‌کند.</p>
+          <p class="identity-note"><svg class="icon" aria-hidden="true"><use href="#icon-lock"/></svg>پاسخ‌گویی بدون نام و شماره تماس امکان‌پذیر است.</p>
+        </div>
+      </section>
+
+      <form id="survey-form" class="survey-sheet" method="post" novalidate aria-label="نظرسنجی مراسم پنج‌روزه">
+        <section class="form-section identity-section" aria-labelledby="identity-title">
+          <div class="section-heading"><h2 id="identity-title">مشخصات شما</h2><span class="optional-label">اختیاری</span></div>
+          <p class="section-description">اگر مایلید برای پیگیری نظرتان با شما در ارتباط باشیم، این بخش را تکمیل کنید.</p>
+          <div class="identity-grid">
+            <div class="field">
+              <label for="full-name">نام و نام خانوادگی <span class="field-optional">(اختیاری)</span></label>
+              <input id="full-name" name="full_name" type="text" placeholder="نام و نام خانوادگی شما" autocomplete="name" maxlength="100">
+            </div>
+            <div class="field">
+              <label for="phone">شماره تماس <span class="field-optional">(اختیاری)</span></label>
+              <input id="phone" name="phone" type="tel" dir="ltr" inputmode="tel" placeholder="09101679458" autocomplete="tel" maxlength="11" pattern="09[0-9]{9}" aria-describedby="phone-hint phone-error">
+              <p id="phone-hint" class="field-hint">شمارهٔ ۱۱ رقمی با ۰۹ شروع شود. واردکردن آن اختیاری است.</p>
+              <p id="phone-error" class="field-error" hidden></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section" aria-labelledby="experience-title">
+          <div class="section-heading"><h2 id="experience-title">تجربهٔ شما از مراسم</h2></div>
+          <p class="section-description">بر اساس روزها و بخش‌هایی که شخصاً حضور داشته‌اید پاسخ دهید. می‌توانید هر پرسش را بدون پاسخ بگذارید.</p>
+          <div id="attendance-question"></div>
+          <p class="attendance-notice" id="attendance-notice" role="status" hidden><svg class="icon" aria-hidden="true"><use href="#icon-info"/></svg><span>اگر در مراسم حضور نداشتید، می‌توانید نظر یا پیشنهادتان را در انتهای همین صفحه بنویسید.</span></p>
+          <div id="general-questions" data-experience></div>
+        </section>
+
+        <section class="form-section" aria-labelledby="program-title" data-experience>
+          <div class="section-heading"><h2 id="program-title">سخنرانی و مداحی</h2></div>
+          <p class="section-description">کیفیت اجرا، مدت برنامه و تعداد مداحان را جداگانه ارزیابی کنید.</p>
+          <div id="program-questions"></div>
+        </section>
+
+        <section class="form-section" aria-labelledby="venue-title" data-experience>
+          <div class="section-heading"><h2 id="venue-title">فضا، خدمات و زمان‌بندی</h2></div>
+          <p class="section-description">برای بخشی که تجربه نکرده‌اید، گزینهٔ مربوط به آن را انتخاب کنید.</p>
+          <div id="service-questions"></div>
+        </section>
+
+        <section class="form-section suggestions-section" aria-labelledby="suggestions-title">
+          <div class="section-heading"><h2 id="suggestions-title">برای محفل بعدی</h2></div>
+          <div id="priority-question" data-experience></div>
+          <div class="question comment-question" id="question-feedback">
+            <label class="question-title" for="feedback"><span class="question-number">۱۵.</span><span>چه چیزی را برای مراسم بعدی حفظ کنیم یا تغییر دهیم؟</span></label>
+            <p class="question-hint" id="feedback-hint">نظر، انتقاد یا پیشنهادتان را در چند خط بنویسید. این بخش اختیاری است.</p>
+            <textarea id="feedback" name="feedback" rows="5" maxlength="2000" placeholder="از تجربه‌تان برایمان بنویسید…" aria-describedby="feedback-hint feedback-count"></textarea>
+            <div class="textarea-meta"><span>نظر شما برای ما ارزشمند است.</span><span id="feedback-count">۰ از ۲۰۰۰ نویسه</span></div>
+          </div>
+        </section>
+
+        <div class="submission-area">
+          <div id="form-error" class="form-error" role="alert" tabindex="-1" hidden></div>
+          <div class="submission-copy"><svg class="icon" aria-hidden="true"><use href="#icon-lock"/></svg><p>پاسخ‌ها برای بهبود برنامه‌های آینده بررسی می‌شوند.<br><strong>نام و شماره تماس در گزارش‌های آماری نمایش داده نمی‌شوند.</strong></p></div>
+          <button class="submit-button" id="submit-button" type="submit" disabled>ارسال نظر</button>
+          <noscript><p class="field-error">برای نمایش پرسش‌ها و ثبت نظر، جاوااسکریپت مرورگر را فعال کنید.</p></noscript>
+        </div>
+      </form>
+
+      <footer class="page-footer">
+        <p>با سپاس از همراهی شما</p>
+        <p>هیئت شهدای مدافع حرم اهل‌بیت علیهم‌السلام</p>
+        <p class="footer-battalion">گردان ۱۳ امام حسین علیه‌السلام</p>
+      </footer>
+    </main>
+
+    <dialog class="completion-dialog" id="completion-dialog" aria-labelledby="dialog-title" aria-describedby="dialog-description">
+      <button class="dialog-close" type="button" aria-label="بستن پیام"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button>
+      <span class="confirmation-tag">نظر شما ثبت شد</span>
+      <h2 id="dialog-title">سپاس از همراهی شما</h2>
+      <p id="dialog-description">نظر شما با موفقیت دریافت شد. از اینکه برای بهترشدن محفل بعدی همراه ما هستید، سپاسگزاریم.</p>
+      <button class="dialog-return" type="button" autofocus>بستن پیام</button>
+    </dialog>
+  </body>
+</html>

@@ -1,0 +1,166 @@
+{
+  "version": "2.0.0",
+  "requires_node": ">=22.13.0",
+  "files": [
+    {
+      "path": "dist/admin.css",
+      "sha256": "d827903a5a21781c6b82723122b350b99f760b1e6426d794731212021c89797e"
+    },
+    {
+      "path": "dist/admin.html",
+      "sha256": "ba7f2883c59efa1e50a56475b126f38d9c543c8c4b65fbe08ffc3eb25a3061b9"
+    },
+    {
+      "path": "dist/admin.js",
+      "sha256": "03196d1e48ab4a4f5d7ca61af945013067cb1be01de836744b434cff933af9be"
+    },
+    {
+      "path": "dist/app.js",
+      "sha256": "77545998982c175087422fd78d19fbfb7762057378ff8a833f25fa524320af9c"
+    },
+    {
+      "path": "dist/assets/fonts/Amiri-OFL.txt",
+      "sha256": "72de68e5954f4fdd24702292ef5a32f003ca960ec9330dc86e5eefb5dffb9b22"
+    },
+    {
+      "path": "dist/assets/fonts/Amiri-Regular.ttf",
+      "sha256": "ab391c4147d054c48976e98322ad0eefe1427aa0e0502a12a4c75d80a70cfcd7"
+    },
+    {
+      "path": "dist/assets/fonts/Vazirmatn-OFL.txt",
+      "sha256": "17e355067c8284f47743a1ee3b1ef7ff684ff0601eda357f9353b10b3016ab31"
+    },
+    {
+      "path": "dist/assets/fonts/Vazirmatn.woff2",
+      "sha256": "4e3fa217d38fdafc1fea4414ceb58ca5e662cf0ab5fa735a8c8c20e8b42cad92"
+    },
+    {
+      "path": "dist/assets/heyat-logo-gold.png",
+      "sha256": "dec057e691362b6f865d087f4d99e5df811dea8c50067c0521108b1544b1a59e"
+    },
+    {
+      "path": "dist/index.html",
+      "sha256": "95f529b2a4ce931939728fee13821863cf08462c8cf8c0324421afdc84581029"
+    },
+    {
+      "path": "dist/questionnaire.js",
+      "sha256": "990c57bf08867cf9a29e682b14c75cebc1785920745d1a35c00599705f5055be"
+    },
+    {
+      "path": "dist/styles.css",
+      "sha256": "79dfdc634bbbcbbebddc53f246d24bb52b5ece37d6ade9f79532bb5d006e6861"
+    },
+    {
+      "path": "lib/auth.mjs",
+      "sha256": "21c43e33b2a73e20155a61ee0292949a35b9b0f54d5632bb18eda0af3b594ba9"
+    },
+    {
+      "path": "lib/config.mjs",
+      "sha256": "79e3cdcdb5c364bb74a804d482c97dc8f5b8f8787b4bfb4dc20ee69b022bc08b"
+    },
+    {
+      "path": "lib/excel.mjs",
+      "sha256": "a7b5b987915b140e5ac1b08968c7ba188fca77c44f781ed873dae0f76360b80b"
+    },
+    {
+      "path": "lib/http.mjs",
+      "sha256": "7e343d19385acf4c2a108606292869e0cca8d45d8a9f17287f890c835dbc2091"
+    },
+    {
+      "path": "lib/statistics.mjs",
+      "sha256": "49d8a911226273afff365bf299dc1ad580525a8b076837281f8ea9df84e5ee8e"
+    },
+    {
+      "path": "lib/store.mjs",
+      "sha256": "3d16b0b4f06a38c0aa17f6974c33dec9633d6d6e2239f12382bc74653f010569"
+    },
+    {
+      "path": "lib/validation.mjs",
+      "sha256": "2fb37252e80053d6dc9d45f039628e01eb289342350a083b550e6d9218a586eb"
+    },
+    {
+      "path": "lib/zip.mjs",
+      "sha256": "ac61322ee74a10896cf4ccbeac816107a8b6c3d617ba0fbffcda8ca1aa263186"
+    },
+    {
+      "path": "tools/backup.mjs",
+      "sha256": "351be985062b4c4afc5ad8d1a5f710fc4166292fdf26dac255a263489b41159b"
+    },
+    {
+      "path": "tools/check.mjs",
+      "sha256": "5f4e35687c40542cdc7688dd2ae984879898ce926ad383e6da99e3c81a4aa116"
+    },
+    {
+      "path": "tools/download-fonts.mjs",
+      "sha256": "e365b34b9a2645505ee0c01f7210cfbc3447da352b60c73ed2ce75a1f8af7e11"
+    },
+    {
+      "path": "tools/package-release.mjs",
+      "sha256": "b4e2041824224a2f1bcc4621a5ab5ebe639cfe0ccd0688148768789b640dc2be"
+    },
+    {
+      "path": "tools/setup.mjs",
+      "sha256": "bd1e11ba232c71b65c9f981303ab1820c82c767e0a552c3a88597d193808161f"
+    },
+    {
+      "path": "test/export-completeness.test.mjs",
+      "sha256": "79e84cf88f2d174bc8094ea7535d22e4b6ca3a7ef29f27ffd0c9dd88455ab833"
+    },
+    {
+      "path": "test/server.test.mjs",
+      "sha256": "2cd86f3be4a5009b746499ebbeccbe951ba3ee1dec4905bf6b2f5be1ae07ae8b"
+    },
+    {
+      "path": "test/verify-export.py",
+      "sha256": "d7f20266dc16e581b97a0540df5955d0bba31e81f6e47da0ee8febb54e8ffc9a"
+    },
+    {
+      "path": "deploy/nginx-heyat-location.conf",
+      "sha256": "d639239dc419499c6388eab9a89375f4428e7471aae07c4e827c0e2fe96c2ac9"
+    },
+    {
+      "path": "server.mjs",
+      "sha256": "cff794ecd9801eb49ad0ff62de868f9e69542913bbcf7fc9187f415b82f1a0c6"
+    },
+    {
+      "path": "package.json",
+      "sha256": "1578a4649b60e67cf1dc957ae0b4f157f11ee13737c718e2e756bab3471a3c5e"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "99c91144d20e43b361fe903e16b32766c97288e0ace5eeac53d06faf03601ac1"
+    },
+    {
+      "path": ".env.example",
+      "sha256": "2095b8c46fc42df06a2b8355535961235a87b14c20849dbf8dc9f12b378bcc13"
+    },
+    {
+      "path": ".dockerignore",
+      "sha256": "f84a3ca7b3b36ea4a819fd825a3ba7af0d8f1b39fb99a1867e000b5f3964a086"
+    },
+    {
+      "path": "Dockerfile",
+      "sha256": "21ff4957d0c90828e3ffc5b81284469a2b61c5ed56b504e18dad77d26592b7d9"
+    },
+    {
+      "path": "compose.yaml",
+      "sha256": "2e2d5dfac2075ac81536de6849253529fe14fb66c0b9b22a0fcafff15a6d6a39"
+    },
+    {
+      "path": "README.md",
+      "sha256": "06f2f7f5fa969b784ff7ba92cdf15fde359625a35e4ba1f4afc26ae1d275fd44"
+    },
+    {
+      "path": "HANDOFF.md",
+      "sha256": "2f9a1b5224b1e5466ac771cee525b9c073468b2a616147f8fe75918e29a45e27"
+    },
+    {
+      "path": "TESTING.md",
+      "sha256": "b044dad72176d7641f3e8e4d3bd0bf6fabd508a4e2a7a931b6cd6599d63ff150"
+    },
+    {
+      "path": "LOGO-NOTES.md",
+      "sha256": "b3a5fda10b384b2051ba503e2841224e6f76225ca33047fc0ec95bafc83c93f0"
+    }
+  ]
+}
