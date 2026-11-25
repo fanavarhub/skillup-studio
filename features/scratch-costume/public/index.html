@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ساخت انیمیشن در اسکرچ با کاستیوم | قسمت ۱۱ اسکیل‌آپ</title>
+  <meta name="description" content="ساخت انیمیشن در اسکرچ با کاستیوم را یاد بگیر. قسمت ۱۱ رایگان اسکیل‌آپ با ویدیو، تمرین تعاملی و آموزش Next Costume و Switch Costume to، بدون ثبت‌نام.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="{{CANONICAL}}">
+  <meta property="og:type" content="video.other">
+  <meta property="og:locale" content="fa_IR">
+  <meta property="og:site_name" content="اسکیل‌آپ">
+  <meta property="og:title" content="ساخت انیمیشن در اسکرچ با کاستیوم | قسمت ۱۱ اسکیل‌آپ">
+  <meta property="og:description" content="در این درس رایگان، با دو کاستیوم یک انیمیشن بساز. همراه با ویدیو و تمرین تعاملی.">
+  <meta property="og:url" content="{{CANONICAL}}">
+  <meta property="og:image" content="{{COVER}}">
+  <meta property="og:image:alt" content="دو کاستیوم گربهٔ نارنجی در حالت آماده و پرش">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="720">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">{{SCHEMA}}</script>
+  <link rel="stylesheet" href="/magazine/scratch-costume-animation/assets/lesson.css?v=7">
+  <script type="module" src="/magazine/scratch-costume-animation/assets/lesson.js?v=7"></script>
+</head>
+<body>
+  <svg class="icons" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M19 12H5m6-6-6 6 6 6"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5 19 12 8 18.5Z" fill="currentColor" stroke-linejoin="round"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7c-2.5-2-5.7-2.5-9-1.5v12c3.3-1 6.5-.5 9 1.5 2.5-2 5.7-2.5 9-1.5v-12c-3.3-1-6.5-.5-9 1.5Zm0 0v12"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2.5 14.4 9.6 21.5 12l-7.1 2.4-2.4 7.1-2.4-7.1L2.5 12l7.1-2.4Z"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M20.5 11.5a7.8 7.8 0 0 1-8 7.5H5l1.4-3.2a7 7 0 0 1-1.9-4.3 7.8 7.8 0 0 1 8-7.5 7.8 7.8 0 0 1 8 7.5Z"/><path d="M9.5 11.5h.1m2.9 0h.1m2.9 0h.1" stroke-width="2.8"/></symbol>
+    <symbol id="i-screen" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9Zm12 0a4 4 0 0 1 0 6m2.7-8.5a8 8 0 0 1 0 11"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="m10 3-.6 2.5-2 .9-2.2-.9L3 8l1.7 1.9v2.2L3 14l2.2 2.5 2.2-.9 2 .9.6 2.5h3.4l.6-2.5 2-.9 2.2.9 2.2-2.5-1.7-1.9V9.9L20.4 8l-2.2-2.5-2.2.9-2-.9-.6-2.5Z" transform="translate(.3 1)"/><circle cx="12" cy="12" r="2.5"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-8 8m6 0v6H5V7h6"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 4 3.5 9 12 14l8.5-5Zm-8.5 9L12 18l8.5-5m-17 4L12 22l8.5-5"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4M4 10V9a2 2 0 0 1 2-2h14M8 21l-4-4 4-4m12 1v1a2 2 0 0 1-2 2H4"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12h.01" stroke-width="3"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4m0 1c5-4 9 4 15 0v11c-6 4-10-4-15 0"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-2-14-4 18"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6Z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-login" viewBox="0 0 24 24"><path d="M13 5h6v14h-6M4 12h10m-4-4 4 4-4 4"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#main">رفتن به محتوای درس</a>
+  <header class="site-header">
+    <div class="shell topbar">
+      <a href="https://skill-up.ir/" class="brand"><img src="/magazine/scratch-costume-animation/assets/skillup-logo.png" width="115" height="43" alt="خانهٔ اسکیل‌آپ"></a>
+      <nav class="main-nav" aria-label="منوی سایت">
+        <a href="https://skill-up.ir/">صفحه اصلی</a>
+        <a class="active" href="https://skill-up.ir/courses">دوره‌های آموزشی</a>
+        <a href="https://skill-up.ir/projects">پروژه‌های نوجوانان</a>
+        <a href="/magazine">مجله اسکیل‌آپ</a><a href="https://skill-up.ir/signup">ثبت‌نام</a>
+      </nav>
+      <a class="site-account" href="https://skill-up.ir/"><span class="account-shield">🛡️</span><span>حساب کاربری<small>ورود به اسکیل آپ</small></span><span>⌄</span></a>
+      <details class="mobile-menu">
+        <summary><svg aria-hidden="true"><use href="#i-menu"/></svg> منو</summary>
+        <nav aria-label="منوی موبایل"><a href="https://skill-up.ir/">صفحه اصلی</a><a href="https://skill-up.ir/courses">دوره‌های آموزشی</a><a href="https://skill-up.ir/projects">پروژه‌های نوجوانان</a><a href="/magazine">مجله اسکیل‌آپ</a><a href="https://skill-up.ir/signup">ثبت‌نام</a></nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="lesson-title">
+      <div class="shell">
+        <nav class="breadcrumbs" aria-label="مسیر صفحه">
+          <a href="/">خانه</a><svg><use href="#i-chevron"/></svg><a href="/magazine">مجله اسکیل‌آپ</a><svg><use href="#i-chevron"/></svg><span aria-current="page">قسمت ۱۱</span>
+        </nav>
+        <div class="lesson-intro">
+          <div class="lesson-tag"><span>۱۱</span> آموزش اسکرچ</div>
+          <h1 id="lesson-title">ساخت انیمیشن در اسکرچ <em>با کاستیوم</em></h1>
+          <div class="intro-bottom">
+            <p>دو حالت برای شخصیتت بساز و با عوض کردنشون، بهش جان بده!</p>
+            <div class="lesson-meta"><span class="free"><i></i> رایگان، بدون ثبت‌نام</span><span class="duration"><svg><use href="#i-clock"/></svg> ۱۰ دقیقه و ۳۱ ثانیه</span></div>
+          </div>
+        </div>
+
+        <div class="video-frame">
+          <div class="video">
+            <iframe src="{{EMBED_HTML}}" title="ویدیوی ساخت انیمیشن در اسکرچ با کاستیوم، قسمت ۱۱" width="1280" height="720" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen webkitallowfullscreen mozallowfullscreen></iframe>
+          </div>
+        </div>
+
+        <div class="under-video">
+          <nav class="lesson-jumps" aria-label="در این قسمت">
+            <a href="#summary"><svg><use href="#i-book"/></svg> نکات درس</a>
+            <a href="#lab"><svg><use href="#i-spark"/></svg> تمرین تعاملی</a>
+            <a href="#comments"><svg><use href="#i-message"/></svg> دیدگاه‌ها</a>
+          </nav>
+          <a href="https://www.aparat.com/v/ljc4b3o" class="external"><svg><use href="#i-external"/></svg> تماشا در آپارات</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="shell content">
+      <section id="lab" class="lab">
+        <div class="lab-copy">
+          <div class="section-mark"><svg><use href="#i-spark"/></svg> تمرین تعاملی</div>
+          <h2>خودت امتحان کن!</h2>
+          <p>با «حالت بعدی» بین دو کاستیوم جابه‌جا شو. بعد «پخش حرکت» رو بزن تا ببینی وقتی حالت‌ها پشت‌سرهم عوض می‌شن، چه اتفاقی می‌افته.</p>
+          <div class="lab-actions">
+            <button type="button" class="button primary" id="next-pose" disabled><svg><use href="#i-repeat"/></svg> حالت بعدی</button>
+            <button type="button" class="button white" id="play-poses" aria-pressed="false" disabled><svg><use href="#i-play"/></svg> <span>پخش حرکت</span></button>
+          </div>
+          <span id="pose-announcement" class="screen-reader-only" role="status"></span>
+          <noscript><p>برای استفاده از دکمه‌های تمرین، جاوااسکریپت مرورگر رو فعال کن.</p></noscript>
+        </div>
+        <div class="lab-stage">
+          <div class="stage-top"><strong>صحنهٔ تمرین</strong><span id="pose-counter">آماده · ۱ از ۲</span></div>
+          <div id="demo-pose" class="pose-fig pose-ready main-pose" role="img" aria-label="گربه آمادهٔ پرش"></div>
+          <div class="pose-row" role="group" aria-label="انتخاب کاستیوم">
+            <button type="button" class="pose" data-pose="0" aria-pressed="true" disabled><span class="pose-fig pose-ready" aria-hidden="true"></span><b>آماده</b></button>
+            <svg class="pose-arrow"><use href="#i-arrow"/></svg>
+            <button type="button" class="pose" data-pose="1" aria-pressed="false" disabled><span class="pose-fig pose-jump" aria-hidden="true"></span><b>پرش</b></button>
+          </div>
+        </div>
+      </section>
+<aside class="course-signup" aria-labelledby="course-signup-title"><div><h2 id="course-signup-title">آموزش اسکرچ را ادامه بده</h2><p>برای ثبت‌نام در دورهٔ کامل اسکرچ، از صفحهٔ ثبت‌نام اسکیل‌آپ شروع کن.</p><small>تماشای این قسمت رایگان است و به ثبت‌نام نیاز ندارد.</small></div><a class="button primary" href="https://skill-up.ir/signup">ثبت‌نام در دورهٔ کامل اسکرچ</a></aside>
+<article class="optimized-article" id="summary"><p>برای ساخت انیمیشن در اسکرچ، دو ظاهر متفاوت برای یک شخصیت آماده کن. سپس بلوک «کاستیوم بعدی» را همراه با یک مکث کوتاه داخل حلقه بگذار. با نمایش پشت‌سرهم این ظاهرها، شخصیتت حالت حرکت پیدا می‌کند.</p><p>در قسمت ۱۱ آموزش اسکرچ اسکیل‌آپ، ویدیو را رایگان و بدون ثبت‌نام می‌بینی. راهنمای زیر برای تمرین و مرور موضوع کاستیوم نوشته شده و آموزش تکمیلی ویدیو است.</p><p><a href="https://www.aparat.com/v/ljc4b3o">تماشای ویدیوی قسمت ۱۱ در آپارات</a></p><h2>قبل از شروع چه چیزی لازم داری؟</h2><p><a href="https://scratch.mit.edu/projects/editor/">ویرایشگر اسکرچ</a> را باز کن و یک پروژهٔ تازه بساز. برای این تمرین، انتخاب شخصیت، کشیدن بلوک‌ها و اجرای پروژه با پرچم سبز کافی است. اگر می‌خواهی با نسخهٔ نصب‌شده کار کنی، <a href="https://skill-up.ir/magazine/download-scratch">راهنمای دانلود اسکرچ اسکیل‌آپ</a> را ببین.</p><h2>کاستیوم در اسکرچ چیست؟</h2><p>کاستیوم (Costume) یکی از ظاهرهای یک شخصیت است؛ مثلاً یک گربه می‌تواند دو حالت متفاوت برای پاهایش داشته باشد. شخصیت یا Sprite کدها و ظاهرهای خودش را دارد. پس‌زمینه یا Backdrop تصویر صحنه است. برای متحرک کردن گربه، لباس‌های همان شخصیت را تغییر می‌دهی.</p><p>شخصیت را از فهرست زیر صحنه انتخاب کن و زبانهٔ Costumes را باز کن. اینجا می‌توانی ظاهرهایش را ببینی و ویرایش کنی. دو لباس باید تفاوت قابل‌دیدن داشته باشند؛ کپی کردن یک تصویر بدون تغییر، حرکت قابل‌مشاهده‌ای ایجاد نمی‌کند.</p><h2>تفاوت Next Costume و Switch Costume to</h2><p>بلوک next costume به ظاهر بعدی در فهرست لباس‌های شخصیت می‌رود. برای انتخاب یک ظاهر مشخص، از switch costume to استفاده کن. توضیح عملکرد بلوک اول در <a href="https://scratch.mit.edu/help/studio/tips/blocks/next-costume/">راهنمای رسمی اسکرچ</a> آمده است.</p><div class="table-scroll"><table><tr><td>بلوک</td><td>کاربرد</td><td>مثال</td></tr><tr><td>next costume</td><td>نمایش ظاهر بعدی به ترتیب فهرست</td><td>تکرار حالت‌های پا برای راه رفتن</td></tr><tr><td>switch costume to</td><td>انتخاب یک ظاهر مشخص</td><td>شروع پروژه با لباس costume1</td></tr></table></div><p>برای اجرای چرخهٔ لباس‌ها، Next Costume مناسب است. برای تعیین ظاهر شروع یا نشان دادن حالتی مانند خوشحالی، لباس دلخواه را با Switch Costume to انتخاب کن.</p><h2>ساخت اولین انیمیشن با دو کاستیوم</h2><h3>۱. شخصیت و لباس‌هایش را انتخاب کن</h3><p>با گربهٔ پیش‌فرض شروع کن. زبانهٔ Costumes را باز کن و روی هر لباس کلیک کن تا تفاوتشان را ببینی. اگر شخصیت دیگری انتخاب کرده‌ای، بررسی کن دست‌کم دو لباس متفاوت داشته باشد.</p><p>اگر فقط یک لباس داری، روی تصویر کوچک آن راست‌کلیک و Duplicate را انتخاب کن. در نسخهٔ کپی، حالت دست یا پا را تغییر بده. برای تمرین اول، اندازه و جای کلی بدن را ثابت نگه دار تا نتیجه واضح‌تر باشد.</p><h3>۲. حالت شروع را مشخص کن</h3><p>به زبانهٔ Code برگرد. بلوک when green flag clicked را قرار بده. زیر آن switch costume to را بگذار و از فهرست، نام لباس اول را انتخاب کن. نام واقعی لباس در پروژهٔ تو ممکن است با مثال فرق داشته باشد.</p><h3>۳. تغییر لباس را تکرار کن</h3><p>از دستهٔ Control حلقهٔ forever را اضافه کن. داخل حلقه، بلوک next costume از دستهٔ Looks را بگذار. هر بار اجرای این بلوک، لباس بعدی نمایش داده می‌شود.</p><h3>۴. بین لباس‌ها مکث بگذار</h3><p>بعد از next costume و داخل همان حلقه، wait 0.2 seconds را قرار بده. این مکث فرصت دیدن هر حالت را می‌دهد. تصویر زیر ترتیب اتصال بلوک‌ها را نشان می‌دهد. همین چیدمان را در اسکرچ بساز.</p><figure class="blocks-figure"><img src="/magazine/scratch-costume-animation/assets/animation-blocks-approved.png" width="539" height="587" loading="lazy" alt="بلوک‌های اسکرچ: پرچم سبز، انتخاب لباس اول، حلقهٔ همیشگی شامل لباس بعدی و مکث ۰٫۲ ثانیه"><figcaption>چیدمان بلوک‌ها برای تغییر پیوستهٔ لباس شخصیت</figcaption></figure><p>پرچم سبز را بزن. باید تغییر پیوستهٔ لباس‌ها را ببینی. برای توقف، دکمهٔ قرمز توقف کنار پرچم را بزن. در این نمونه، لباس شروع بلافاصله وارد چرخه می‌شود؛ اگر می‌خواهی پیش از حرکت دیده شود، یک wait کوتاه قبل از forever اضافه کن.</p><h3>۵. سرعت را با چشم مقایسه کن</h3><p>مقدار انتظار را از ۰٫۲ به ۰٫۵ ثانیه تغییر بده و دوباره اجرا کن. با انتظار بیشتر، تغییر لباس آهسته‌تر دیده می‌شود. مقدار مناسب به حالت‌های شخصیت و حرکت موردنظرت بستگی دارد. هر بار فقط همین عدد را تغییر بده تا اثرش را بهتر تشخیص بدهی.</p><h2>چطور شخصیت روی صحنه راه برود؟</h2><p>تغییر لباس، ظاهر شخصیت را عوض می‌کند. برای تغییر موقعیتش، از بلوک‌های دستهٔ Motion هم استفاده کن. در همان حلقه، قبل از next costume یک move 3 steps بگذار. حالا شخصیت هم جابه‌جا می‌شود و هم حالتش تغییر می‌کند.</p><p>اگر به لبهٔ صحنه می‌رسد، برای تمرین از if on edge, bounce استفاده کن. اگر بعد از برگشت وارونه شد، حالت چرخش را روی left-right تنظیم کن. ابتدا حرکت لباس‌ها را درست کن و بعد سراغ جابه‌جایی برو؛ پیدا کردن علت خطا ساده‌تر می‌شود.</p><h2>رفع اشکال انیمیشن اسکرچ</h2><div class="table-scroll"><table><tr><td>مشکل</td><td>چه چیزی را بررسی کنی؟</td><td>راه‌حل پیشنهادی</td></tr><tr><td>هیچ تغییری دیده نمی‌شود</td><td>تعداد و تفاوت لباس‌های شخصیت انتخاب‌شده</td><td>دو لباس متفاوت بساز و next costume را یک بار جداگانه کلیک کن.</td></tr><tr><td>فقط یک بار لباس عوض می‌شود</td><td>جای بلوک نسبت به حلقه</td><td>next costume و wait را داخل forever بگذار.</td></tr><tr><td>تغییرها خیلی سریع‌اند</td><td>وجود مکث در حلقه</td><td>wait را پس از تغییر لباس اضافه کن و مقدارش را بیشتر کن.</td></tr><tr><td>شخصیت هنگام تغییر لباس می‌پرد یا می‌لرزد</td><td>جای بدن و مرکز لباس‌ها در ویرایشگر</td><td>موقعیت و اندازهٔ بدن را بین لباس‌ها هماهنگ کن.</td></tr><tr><td>لباس‌ها با ترتیب نامناسب پخش می‌شوند</td><td>ترتیب تصویرهای کوچک در Costumes</td><td>ترتیب لباس‌ها را با کشیدن آن‌ها اصلاح کن.</td></tr><tr><td>شخصیت روی صحنه جلو نمی‌رود</td><td>وجود بلوک حرکت</td><td>یک بلوک Motion مانند move به حلقه اضافه کن.</td></tr></table></div><p>اگر نتیجه هنوز عجیب است، کدهای دیگری را که هم‌زمان لباس یا موقعیت همین شخصیت را تغییر می‌دهند بررسی کن. برای پیدا کردن مشکل، ابتدا فقط همین برنامهٔ کوتاه را اجرا کن.</p><h2>سه تمرین برای ادامهٔ کار</h2><h3>تمرین اول: یک حرکت خوانا بساز</h3><p>دو حالت برای دست‌های شخصیت آماده کن. انیمیشن را اجرا کن و بررسی کن تفاوت حالت‌ها دیده می‌شود. بعد لباس شروع را با Switch Costume مشخص کن.</p><h3>تمرین دوم: سرعت مناسب را پیدا کن</h3><p>همان حرکت را با انتظار ۰٫۲ و ۰٫۵ ثانیه اجرا کن. بنویس کدام برای پروژه‌ات بهتر است و چرا. لازم نیست همهٔ حرکت‌ها سریع باشند؛ برای پلک زدن یا تکان دادن دست، زمان‌بندی متفاوتی لازم می‌شود.</p><h3>تمرین سوم: لباس سوم اضافه کن</h3><p>یک حالت میانی بین دو لباس قبلی بساز و ترتیبشان را تنظیم کن. بررسی کن آیا این حالت اضافه، حرکت را واضح‌تر کرده است. تعداد بیشتر لباس به‌تنهایی تضمین نمی‌کند حرکت بهتر شود؛ تفاوت و ترتیب حالت‌ها هم مهم‌اند.</p><h2>پروژه‌ات را ذخیره کن</h2><p>در ویرایشگر، از منوی File گزینهٔ Save to your computer را انتخاب کن تا نسخه‌ای از پروژه روی دستگاهت داشته باشی. برای ادامه، از Load from your computer استفاده کن. نامی مثل «تمرین لباس‌های گربه» کمک می‌کند بعداً فایل را راحت‌تر پیدا کنی.</p><h2>پرسش‌های رایج</h2><h3>با یک کاستیوم هم می‌توان انیمیشن ساخت؟</h3><p>برای دیدن تغییر ظاهر با Next Costume به دست‌کم دو ظاهر متفاوت نیاز داری. با یک لباس هم می‌توان موقعیت یا اندازهٔ شخصیت را تغییر داد، اما تمرین این صفحه دربارهٔ تغییر لباس است.</p><h3>چرا شخصیت هر بار با لباس متفاوت شروع می‌شود؟</h3><p>قبل از حلقه، Switch Costume to را قرار بده و لباس شروع را انتخاب کن. بررسی کن کد دیگری هم‌زمان آن را تغییر ندهد.</p><h3>برای دیدن قسمت ۱۱ باید ثبت‌نام کنم؟</h3><p>این قسمت در صفحهٔ عمومی اسکیل‌آپ رایگان و بدون ثبت‌نام قابل تماشا است. دسترسی به قسمت‌های قبلی تابع شرایط پنل دوره است.</p><h3>این متن، پیاده‌سازی کلمه‌به‌کلمهٔ ویدیو است؟</h3><p>این متن راهنمای تکمیلی موضوع درس است و برای تمرین، مرور و رفع اشکال نوشته شده است.</p><p>تمرینت را اجرا کن و در دیدگاه‌ها بنویس کدام لباس یا کدام بلوک برایت سؤال ایجاد کرده است. نام بلوک و نتیجه‌ای که می‌بینی کمک می‌کند سؤال روشن‌تر باشد.</p><h2>منابع و ادامهٔ یادگیری</h2><p><a href="https://scratch.mit.edu/help/studio/tips/blocks/next-costume/">راهنمای رسمی Next Costume در اسکرچ</a></p><p><a href="https://www.scratchfoundation.org/learn/learning-library/next-costume">آموزش Next Costume از بنیاد اسکرچ</a></p><p><a href="https://projects.raspberrypi.org/en/projects/getting-started-scratch">راهنمای شروع اسکرچ از Raspberry Pi Foundation</a></p></article>
+
+
+
+      <section id="comments" class="comments">
+        <div class="section-heading">
+          <h2>دیدگاه‌های این درس</h2>
+          <p>تمرینت چطور پیش رفت؟ از پروژه‌ات بگو یا سؤال‌هات رو بپرس.</p>
+        </div>
+        <div class="comment-layout">
+          <form class="comment-form" id="comment-form" method="post" action="/magazine/scratch-costume-animation/comments">
+            <label for="display-name">اسم یا لقب</label>
+            <input id="display-name" name="name" placeholder="مثلاً آرین" minlength="2" maxlength="40" required>
+            <label for="comment-body">دیدگاهت</label>
+            <textarea id="comment-body" name="body" placeholder="اینجا بنویس…" minlength="8" maxlength="800" required></textarea>
+            <div hidden><label for="website">این فیلد را خالی بگذار</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
+            <div class="comment-actions"><button type="submit" class="button primary"><svg><use href="#i-message"/></svg> ارسال برای بررسی</button></div>
+            <p id="comment-status" role="status"></p>
+          </form>
+          <div class="comment-feed">
+            <div class="progress-illustration" id="comment-empty">
+              <div class="teen-progress">
+                <div class="growth-art">
+                  <div class="growth-glow" aria-hidden="true"></div>
+                  <img loading="lazy" class="growth-student" src="/magazine/scratch-costume-animation/assets/teen-growth.png" width="1440" height="1080" alt="نوجوان برنامه‌نویس با لپ‌تاپ روی پله‌های پیشرفت، در کنار ستارهٔ موفقیت">
+                  <span class="growth-spark spark-one" aria-hidden="true">✦</span>
+                  <span class="growth-spark spark-two" aria-hidden="true">✧</span>
+                </div>
+                <p>هر روز، یک قدم جلوتر</p>
+                <div class="growth-journey" aria-label="یاد بگیر، بساز، بهتر شو">
+                  <span>یاد بگیر</span><i aria-hidden="true"></i><span>بساز</span><i aria-hidden="true"></i><span>بهتر شو</span>
+                </div>
+                <button type="button" class="animation-toggle" id="toggle-progress" aria-pressed="false">توقف انیمیشن</button>
+              </div>
+            </div>
+            <p id="feed-status" role="status"></p>
+            <ul id="comment-list" hidden></ul>
+            <button type="button" class="button white" id="older-comments" hidden>دیدگاه‌های قدیمی‌تر</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <a href="https://skill-up.ir/"><img src="/magazine/scratch-costume-animation/assets/skillup-logo-inverse.png" width="176" height="66" alt="اسکیل آپ"></a>
+          <p>اسکیل آپ پلتفرم جامع و تخصصی آموزش و توسعه مهارتی نوجوانان ۸ تا ۱۷ سال است. رسالت ما توانمندسازی عملی دانش‌آموزان با یادگیری پروژه‌محور و ساخت نمونه‌کارهای واقعی است.</p>
+        </div>
+        <div class="footer-pages">
+          <h2>🌐 صفحات پلتفرم</h2>
+          <nav aria-label="صفحات پلتفرم">
+            <a href="https://skill-up.ir/">صفحه نخست اسکیل آپ</a>
+            <a href="https://skill-up.ir/courses">دوره‌های یادگیری کارگاهی</a>
+            <a href="https://skill-up.ir/projects">پروژه‌های تفریحی و بازی‌ها</a>
+            <a href="/magazine">مستندات و مجله آموزشی</a>
+          </nav>
+        </div>
+        <div class="footer-social">
+          <h2>📢 راه‌های ارتباطی و شبکه‌های اجتماعی</h2>
+          <p>با دنبال کردن کانال‌های رسمی اسکیل آپ در پیام‌رسان‌ها و رسانه‌های ویدیویی، از پروژه‌های منتخب هفته و تخفیف دوره‌های جدید مطلع شوید.</p>
+          <div class="social-links">
+            <a href="https://ble.ir/join/CjSBy9mEQc" target="_blank" rel="noopener noreferrer">▢ کانال بله اسکیل‌آپ</a>
+            <a href="https://eitaa.com/skillupir" target="_blank" rel="noopener noreferrer">ایتا: <bdi>@skillupir</bdi></a>
+            <a class="youtube" href="https://youtube.com/@skillup_ir?si=cl3gP801wpY8BFCb" target="_blank" rel="noopener noreferrer">▷ یوتیوب اسکیل‌آپ</a>
+            <a class="instagram" href="https://www.instagram.com/skillup.ir/" target="_blank" rel="noopener noreferrer">◎ اینستاگرام ما</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom"><span>© ۱۴۰۵ اسکیل آپ (Skill Up). تمامی حقوق برای دپارتمان آموزش نوجوانان محفوظ است.</span><span dir="ltr">futuremaker-framework-v1.0</span></div>
+    </div>
+  </footer>
+</body>
+</html>

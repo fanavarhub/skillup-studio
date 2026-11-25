@@ -42,6 +42,7 @@ before(async () => {
       SKILLUP_ADMIN_PASSWORD: 'Automated-Test-Admin-Password',
       SKILLUP_SESSION_SECRET: 'automated-test-session-secret-longer-than-32-characters',
       PUBLIC_BASE_URL: base,
+      SCRATCH_LESSON_ADMIN_TOKEN: 'test-only-scratch-moderation-token',
       FREE_SCRATCH_COURSE_ID: 'course-1',
       GA_MEASUREMENT_ID: 'G-TEST12345',
       GOOGLE_SITE_VERIFICATION: 'test-verification-token-12345',
@@ -412,4 +413,27 @@ test('user CSV contains requested learning fields without password hashes', asyn
   assert.match(report.body, /مجموع دقیقه مشاهده/)
   assert.match(report.body, /ویدئوهای بالای ۷۵٪/)
   assert.doesNotMatch(report.body, /[a-f0-9]{24}:[a-f0-9]{64}/)
+})
+
+test('the magazine serves the Scratch costume lesson and queues comments for review', async () => {
+  const lesson = '/magazine/scratch-costume-animation'
+  const { response, body } = await request(lesson)
+  assert.equal(response.status, 200)
+  assert.match(body, /<link rel="canonical"/)
+  assert.ok(body.includes(base + lesson))
+  assert.match(body, /www\.aparat\.com\/video\/video\/embed/)
+  assert.match(body, /animation-blocks-approved\.png/)
+  assert.equal((await request(lesson + '/assets/animation-blocks-approved.png')).response.headers.get('content-type'), 'image/png')
+  assert.ok((await request('/sitemap.xml')).body.includes('https://skill-up.ir' + lesson))
+
+  const submitted = await request(lesson + '/comments', {
+    method: 'POST',
+    headers: { Origin: base, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'هنرجو', body: 'تمرین تغییر لباس را انجام دادم.' }),
+  })
+  assert.equal(submitted.response.status, 201)
+  assert.deepEqual((await request(lesson + '/comments')).body.comments, [])
+  const moderation = await request(lesson + '/moderation')
+  assert.equal(moderation.response.status, 200)
+  assert.match(moderation.response.headers.get('x-robots-tag'), /noindex/)
 })

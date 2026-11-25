@@ -10,6 +10,7 @@ import { createSessionToken, readSession, requireAdminSession, sessionDurationMs
 import { mountPlatformRoutes } from './platform'
 import { mountLearningRoutes } from './learning'
 import { findMagazineArticle, magazineArticles } from './src/articleData'
+import { createLessonServer, lessonPath } from './features/scratch-costume/server.mjs'
 
 const app = express()
 const PORT = Number(process.env.PORT || 3000)
@@ -30,7 +31,6 @@ if (isProduction && !adminPassword) throw new Error('SKILLUP_ADMIN_PASSWORD must
 fs.mkdirSync(dataDir, { recursive: true })
 fs.mkdirSync(downloadDir, { recursive: true })
 app.set('trust proxy', true)
-app.use(express.json({ limit: '1mb' }))
 app.disable('x-powered-by')
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff')
@@ -42,6 +42,23 @@ app.use((_req, res, next) => {
   if (isProduction) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
   next()
 })
+
+// Give the lesson its own handlers before Express reads comment request bodies.
+const lesson = createLessonServer({
+  assetDir: path.resolve(path.dirname(process.argv[1]), isProduction ? '..' : '.', 'features', 'scratch-costume', 'public'),
+  databasePath: path.join(dataDir, 'scratch-comments.sqlite'),
+  publicOrigin: process.env.PUBLIC_BASE_URL || 'https://skill-up.ir',
+  adminToken: process.env.SCRATCH_LESSON_ADMIN_TOKEN || '',
+  trustProxy: process.env.SCRATCH_LESSON_TRUST_PROXY === '1',
+})
+app.use((req, res, next) => {
+  if (req.path === lessonPath || req.path.startsWith(lessonPath + '/')) {
+    lesson.emit('request', req, res)
+    return
+  }
+  next()
+})
+app.use(express.json({ limit: '1mb' }))
 
 app.get('/analytics.js', (_req, res) => {
   if (!gaMeasurementId) return res.status(404).type('text/javascript').send('')
@@ -1039,6 +1056,7 @@ app.get('/sitemap.xml', (_req, res) => {
     { loc: 'https://skill-up.ir/courses', priority: '0.9', changefreq: 'weekly' },
     { loc: 'https://skill-up.ir/projects', priority: '0.8', changefreq: 'weekly' },
     { loc: 'https://skill-up.ir/signup', priority: '0.9', changefreq: 'monthly' },
+    { loc: 'https://skill-up.ir' + lessonPath, priority: '0.8', changefreq: 'monthly' },
     { loc: 'https://skill-up.ir/magazine', priority: '0.8', changefreq: 'weekly' },
     { loc: 'https://skill-up.ir/magazine/download-scratch', priority: '0.9', changefreq: 'monthly' },
   ]

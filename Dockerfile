@@ -25,6 +25,8 @@ COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/public ./public
 
+COPY --from=build --chown=node:node /app/features/scratch-costume/public ./features/scratch-costume/public
+
 USER node
 
 EXPOSE 4050

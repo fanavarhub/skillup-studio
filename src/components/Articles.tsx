@@ -28,6 +28,15 @@ export default function Articles({ navigate }: { navigate: (tab: string) => void
 
   const articles = [
     {
+      id: 'scratch-costume-animation',
+      title: 'ساخت انیمیشن در اسکرچ با کاستیوم',
+      excerpt: 'قسمت ۱۱ آموزش رایگان اسکرچ با ویدیو، تمرین تعاملی و راهنمای قدم‌به‌قدم تغییر لباس شخصیت.',
+      date: '۱۴۰۵/۰۸/۲۸',
+      author: 'تیم آموزش اسکیل آپ',
+      cover: '/magazine/scratch-costume-animation/assets/costume-cover.jpg',
+      tab: 'article:scratch-costume-animation',
+    },
+    {
       id: 'download-scratch',
       title: 'دانلود اسکرچ برای ویندوز و اندروید + آموزش نصب',
       excerpt: 'دانلود مستقیم نسخه ویندوز و اندروید، لینک رسمی Google Play و آموزش نصب قدم‌به‌قدم برای شروع دوره اسکرچ.',
@@ -92,7 +101,7 @@ export default function Articles({ navigate }: { navigate: (tab: string) => void
 
                 {/* Read more button link */}
                 <div className="border-t border-gray-100/80 pt-4 mt-6">
-                  <a href={art.tab === 'scratch-download' ? '/magazine/download-scratch' : `/magazine/${art.tab.replace('article:', '')}`} onClick={(event) => { event.preventDefault(); navigate(art.tab); }} className="font-sans text-xs font-bold inline-flex items-center gap-1.5 text-indigo-600 hover:underline" aria-label={`مطالعه مقاله ${art.title}`}><span>مطالعه کامل مقاله</span><ExternalLink className="w-3.5 h-3.5" /></a>
+                  <a href={art.tab === 'scratch-download' ? '/magazine/download-scratch' : `/magazine/${art.tab.replace('article:', '')}`} onClick={(event) => { if (art.id === 'scratch-costume-animation') return; event.preventDefault(); navigate(art.tab); }} className="font-sans text-xs font-bold inline-flex items-center gap-1.5 text-indigo-600 hover:underline" aria-label={`مطالعه مقاله ${art.title}`}><span>مطالعه کامل مقاله</span><ExternalLink className="w-3.5 h-3.5" /></a>
                 </div>
               </div>
             </article>
