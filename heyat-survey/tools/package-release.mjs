@@ -16,8 +16,9 @@ function add(relative) {
   }
 }
 for (const directory of ['dist', 'lib', 'tools', 'test', 'deploy']) add(directory);
-for (const name of ['server.mjs', 'package.json', '.gitignore', '.env.example', '.dockerignore', 'Dockerfile', 'compose.yaml', 'README.md', 'HANDOFF.md', 'TESTING.md', 'LOGO-NOTES.md']) files.push({ name, data: readFileSync(join(projectRoot, name)) });
-const manifest = { version: '2.0.0', requires_node: '>=22.13.0', files: files.map(file => ({ path: file.name, sha256: createHash('sha256').update(file.data).digest('hex') })) };
+for (const name of ['server.mjs', 'package.json', '.gitignore', '.gitattributes', '.env.example', '.dockerignore', 'Dockerfile', 'compose.yaml', 'README.md', 'DEVOPS.md', 'HANDOFF.md', 'TESTING.md', 'LOGO-NOTES.md']) files.push({ name, data: readFileSync(join(projectRoot, name)) });
+const { version, engines } = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf8'));
+const manifest = { version, requires_node: engines.node, files: files.map(file => ({ path: file.name, sha256: createHash('sha256').update(file.data).digest('hex') })) };
 files.push({ name: 'RELEASE-MANIFEST.json', data: Buffer.from(JSON.stringify(manifest, null, 2)) });
 const directory = join(projectRoot, 'release');
 mkdirSync(directory, { recursive: true });

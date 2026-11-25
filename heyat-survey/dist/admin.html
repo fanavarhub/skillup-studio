@@ -14,7 +14,18 @@
     <section id="login-panel" class="login-panel" aria-labelledby="login-title" hidden>
       <p class="login-devotional">سلام الله علیها</p><h1 id="login-title">ورود به مدیریت</h1>
       <p class="admin-muted">گزارش‌ها، نظرها و خروجی اکسل نظرسنجی مراسم</p>
-      <form id="login-form" novalidate><div class="field"><label for="admin-password">رمز مدیریت</label><input id="admin-password" type="password" autocomplete="current-password" maxlength="200" required></div><p id="login-error" class="field-error" role="alert" hidden></p><button id="login-button" type="submit" class="submit-button">ورود به مدیریت</button></form>
+      <form id="login-form" method="post" novalidate>
+        <div class="field">
+          <label for="admin-username">نام کاربری</label>
+          <input id="admin-username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" dir="ltr" maxlength="64" required>
+        </div>
+        <div class="field">
+          <label for="admin-password">رمز مدیریت</label>
+          <input id="admin-password" name="password" type="password" autocomplete="current-password" dir="ltr" maxlength="200" required>
+        </div>
+        <p id="login-error" class="field-error" role="alert" hidden></p>
+        <button id="login-button" type="submit" class="submit-button">ورود به مدیریت</button>
+      </form>
     </section>
     <p id="loading-message" class="loading-message" role="status">در حال بارگذاری…</p>
     <section id="dashboard" hidden aria-labelledby="report-title">
@@ -27,7 +38,7 @@
       <section class="report-section" aria-labelledby="preferences-title"><div class="report-section-heading"><h2 id="preferences-title">ساعت، مدت و تعداد</h2><span>گزینهٔ «مناسب» جهت مطلوب این پرسش‌هاست.</span></div><div id="preferences-grid" class="chart-grid"></div></section>
       <section class="report-section" aria-labelledby="attendance-title"><div class="report-section-heading"><h2 id="attendance-title">میزان حضور پاسخ‌دهندگان</h2></div><div id="attendance-chart"></div></section>
       <section class="report-section" aria-labelledby="responses-title"><div class="report-section-heading"><h2 id="responses-title">پاسخ‌ها و نظرهای ثبت‌شده</h2><span>این بخش فقط برای مدیر قابل مشاهده است.</span></div><div class="response-toolbar"><label for="response-search">جست‌وجو در پاسخ‌ها</label><input id="response-search" type="search" placeholder="نام، شماره تماس یا بخشی از نظر" maxlength="100" autocomplete="off"></div><div id="responses-table" class="table-scroll"></div><div class="pagination"><button id="previous-page" class="secondary-button" type="button">صفحه قبل</button><span id="page-label"></span><button id="next-page" class="secondary-button" type="button">صفحه بعد</button></div></section>
-      <p class="admin-footer">فایل اکسل شامل پاسخ‌های کامل، امتیازها، خلاصه، اولویت‌ها و توزیع پاسخ‌هاست. مشخصات تماس فقط در برگهٔ پاسخ‌های کامل درج می‌شود.</p>
+      <p class="admin-footer">فایل اکسل همهٔ پاسخ‌ها را در بر می‌گیرد. در برگهٔ «پاسخ‌ها» هر نفر یک ردیف دارد و نام، شماره تماس، پاسخ هر پرسش، اولویت‌ها و نظر آزاد در ستون‌های جدا آمده‌اند.</p>
     </section>
   </main>
 </body>

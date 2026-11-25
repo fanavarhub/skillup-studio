@@ -13,7 +13,8 @@ test('all form fields persist centrally and all response pages export after rest
   mkdirSync(qa, { recursive: true });
   const directory = mkdtempSync(join(qa, 'complete-export-'));
   const password = randomBytes(24).toString('base64url');
-  const config = readConfig({ HOST: '127.0.0.1', PORT: '0', DATA_DIR: directory, ADMIN_PASSWORD_HASH: await hashPassword(password), SESSION_SECRET: randomBytes(32).toString('hex') });
+  const username = 'survey-operator';
+  const config = readConfig({ HOST: '127.0.0.1', PORT: '0', DATA_DIR: directory, ADMIN_USERNAME: username, ADMIN_PASSWORD_HASH: await hashPassword(password), SESSION_SECRET: randomBytes(32).toString('hex') });
   let app = createApplication(config);
   let origin;
   const listen = async () => { const address = await app.listen(); origin = `http://127.0.0.1:${address.port}`; };
@@ -45,7 +46,14 @@ test('all form fields persist centrally and all response pages export after rest
       expected.push({ id: payload.submission_id, payload, labels, priorities_label: absent ? '' : partial ? 'در حال حاضر پیشنهاد مشخصی ندارم' : 'سایر؛ صوت؛ مدت سخنرانی' });
     }
     assert.equal(app.store.all().length, 27);
-    const login = await request('/api/admin/login', { method: 'POST', body: JSON.stringify({ password }) });
+    const loginAs = credentials => request('/api/admin/login', { method: 'POST', body: JSON.stringify(credentials) });
+    const loginPage = await request('/admin').then(response => response.text());
+    assert.match(loginPage, /id="admin-username"[^>]+autocomplete="username"/);
+    assert.match(loginPage, /id="export-link" href="\.\/api\/admin\/export\.xlsx"/);
+    assert.equal((await request('/api/admin/export.xlsx')).status, 401);
+    assert.equal((await loginAs({ password })).status, 401);
+    assert.equal((await loginAs({ username: 'admin', password })).status, 401);
+    const login = await loginAs({ username, password });
     assert.equal(login.status, 200);
     const cookie = login.headers.get('set-cookie').split(';')[0];
     const auth = { headers: { Cookie: cookie } };

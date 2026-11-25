@@ -136,11 +136,17 @@ async function refresh() {
 $('#login-form').addEventListener('submit', async event => {
   event.preventDefault();
   $('#login-error').hidden = true;
+  const username = $('#admin-username').value.trim();
   const password = $('#admin-password').value;
-  if (!password) { $('#login-error').textContent = 'رمز مدیریت را وارد کنید.'; $('#login-error').hidden = false; return; }
+  if (!username || !password) {
+    $('#login-error').textContent = 'نام کاربری و رمز مدیریت را وارد کنید.';
+    $('#login-error').hidden = false;
+    $(username ? '#admin-password' : '#admin-username').focus();
+    return;
+  }
   $('#login-button').disabled = true;
   try {
-    const data = await api('login', { method: 'POST', body: JSON.stringify({ password }) });
+    const data = await api('login', { method: 'POST', body: JSON.stringify({ username, password }) });
     csrf = data.csrf_token; $('#admin-password').value = ''; showDashboard(); await refresh();
   } catch (error) { $('#login-error').textContent = error.message; $('#login-error').hidden = false; }
   finally { $('#login-button').disabled = false; }

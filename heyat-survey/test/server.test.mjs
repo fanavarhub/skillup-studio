@@ -17,7 +17,7 @@ const sample = (changes = {}) => ({ questionnaire_version: '1.0', submission_id:
 const request = (path, options = {}) => fetch(`${origin}${path}`, { ...options, headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...options.headers } });
 const post = payload => request('/api/responses', { method: 'POST', body: JSON.stringify(payload) });
 async function login() {
-  const response = await request('/api/admin/login', { method: 'POST', body: JSON.stringify({ password }) });
+  const response = await request('/api/admin/login', { method: 'POST', body: JSON.stringify({ username: 'admin', password }) });
   assert.equal(response.status, 200);
   const data = await response.json();
   cookie = response.headers.get('set-cookie').split(';')[0]; csrf = data.csrf_token;
@@ -101,7 +101,7 @@ test('foreign origins, invalid content types, malformed and oversized requests a
 });
 
 test('admin authentication protects metrics and computes correct valid denominators', async () => {
-  assert.equal((await request('/api/admin/login', { method: 'POST', body: JSON.stringify({ password: 'wrong' }) })).status, 401);
+  assert.equal((await request('/api/admin/login', { method: 'POST', body: JSON.stringify({ username: 'admin', password: 'wrong' }) })).status, 401);
   await login();
   const response = await request('/api/admin/stats', { headers: { Cookie: cookie } });
   assert.equal(response.status, 200);

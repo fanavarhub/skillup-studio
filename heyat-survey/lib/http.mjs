@@ -88,7 +88,10 @@ export function createApplication(config) {
       if (path === '/api/admin/login' && request.method === 'POST') {
         if (!limiter.allow(`login:${ip}`, 8, 15 * 60000)) return json(response, 429, { message: 'تلاش‌های ورود زیاد است؛ ۱۵ دقیقه دیگر دوباره تلاش کنید.' }, { 'Retry-After': '900' });
         const input = await body(request);
-        if (!input || typeof input !== 'object' || !await verifyPassword(input.password, config.passwordHash)) throw new HttpError(401, 'رمز عبور درست نیست.');
+        const passwordValid = await verifyPassword(input?.password, config.passwordHash);
+        if (!safeEqual(input?.username, config.adminUsername) || !passwordValid) {
+          throw new HttpError(401, 'نام کاربری یا رمز عبور درست نیست.');
+        }
         const previous = requestToken(request);
         if (previous) store.removeSession(digestToken(previous, config.sessionSecret));
         const token = newToken();

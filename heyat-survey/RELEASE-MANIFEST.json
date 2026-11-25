@@ -1,18 +1,74 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "requires_node": ">=22.13.0",
   "files": [
     {
+      "path": ".dockerignore",
+      "sha256": "f84a3ca7b3b36ea4a819fd825a3ba7af0d8f1b39fb99a1867e000b5f3964a086"
+    },
+    {
+      "path": ".env.example",
+      "sha256": "7623987845be67a8e9cd97d679bd3f5a99aeaab4bd7e414bbb952ec119d0c8f9"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "ad83196a57e0c674efddfa0711adacef647a4f181a528898798f7e81edcab483"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "99c91144d20e43b361fe903e16b32766c97288e0ace5eeac53d06faf03601ac1"
+    },
+    {
+      "path": "DEVOPS.md",
+      "sha256": "9ae54c488e5f01038963352237127850c346b088f997da091e4f4b18d9a139b5"
+    },
+    {
+      "path": "Dockerfile",
+      "sha256": "21ff4957d0c90828e3ffc5b81284469a2b61c5ed56b504e18dad77d26592b7d9"
+    },
+    {
+      "path": "HANDOFF.md",
+      "sha256": "168d295f03eabd1c8274711b948d010d0e696a0ef5d2f3c7982e58f227472802"
+    },
+    {
+      "path": "LOGO-NOTES.md",
+      "sha256": "b3a5fda10b384b2051ba503e2841224e6f76225ca33047fc0ec95bafc83c93f0"
+    },
+    {
+      "path": "README.md",
+      "sha256": "ad1851e9e9f458bf583bf00544de4fed0591f8069167d8e68ac6be3bd90b0034"
+    },
+    {
+      "path": "TESTING.md",
+      "sha256": "6fb5178c1da97d383ccb47f03e504748bf8c842a18ea6d1b839b03dca1b17096"
+    },
+    {
+      "path": "compose.yaml",
+      "sha256": "b4826fdaefb4811fc7851f26515df6bab0d1205766d53d8d049f3d0d50c428ec"
+    },
+    {
+      "path": "deploy/install.sh",
+      "sha256": "0b100787af60adcba178ec2175d1e6edcdab4dbc80267592f8fd279756b03120"
+    },
+    {
+      "path": "deploy/nginx-config.py",
+      "sha256": "f40c3f167b578e4bdc26c267d2027438719b80c0526278a55e0b6dbb96772b28"
+    },
+    {
+      "path": "deploy/nginx-heyat-location.conf",
+      "sha256": "4dfbb17c0a59152375d3f2a6c5ce1cbc5084e42eb52281f2e80072f8c1bc6841"
+    },
+    {
       "path": "dist/admin.css",
-      "sha256": "d827903a5a21781c6b82723122b350b99f760b1e6426d794731212021c89797e"
+      "sha256": "2345c712ef79315165dca10038e4058daaa576f8e48352990f5b339e340f788b"
     },
     {
       "path": "dist/admin.html",
-      "sha256": "ba7f2883c59efa1e50a56475b126f38d9c543c8c4b65fbe08ffc3eb25a3061b9"
+      "sha256": "0149906872a25eac61ed553cfd6ec3d2dde656d4b2203b13053a1a9c1e6d6a20"
     },
     {
       "path": "dist/admin.js",
-      "sha256": "03196d1e48ab4a4f5d7ca61af945013067cb1be01de836744b434cff933af9be"
+      "sha256": "19341e8734fc83e18a8133a885f2421c9e81f59fa760a451efea11540435367b"
     },
     {
       "path": "dist/app.js",
@@ -56,7 +112,7 @@
     },
     {
       "path": "lib/config.mjs",
-      "sha256": "79e3cdcdb5c364bb74a804d482c97dc8f5b8f8787b4bfb4dc20ee69b022bc08b"
+      "sha256": "0a8fa4d52d778763aa7146b46b2556ae0948dcfa41fb0f8749eca4e21f63e7d7"
     },
     {
       "path": "lib/excel.mjs",
@@ -64,7 +120,7 @@
     },
     {
       "path": "lib/http.mjs",
-      "sha256": "7e343d19385acf4c2a108606292869e0cca8d45d8a9f17287f890c835dbc2091"
+      "sha256": "eb4642db4c8fc2ecb7469aaf8300a5567eea3edd558b4056c6f0f0ab0a1f59cc"
     },
     {
       "path": "lib/statistics.mjs",
@@ -83,6 +139,26 @@
       "sha256": "ac61322ee74a10896cf4ccbeac816107a8b6c3d617ba0fbffcda8ca1aa263186"
     },
     {
+      "path": "package.json",
+      "sha256": "c8797c021450cd3f9cf63f8bf08bb6e92c850ba280c3098608775a6c9a01a574"
+    },
+    {
+      "path": "server.mjs",
+      "sha256": "cff794ecd9801eb49ad0ff62de868f9e69542913bbcf7fc9187f415b82f1a0c6"
+    },
+    {
+      "path": "test/export-completeness.test.mjs",
+      "sha256": "e1acb69bda2f8c57082ad3426d153f1b185c4182478649702a20484a5809d390"
+    },
+    {
+      "path": "test/server.test.mjs",
+      "sha256": "bde583028a5839985a93f132ca24d7b9e1af70c0dbf36126df90f7bfae7badf1"
+    },
+    {
+      "path": "test/verify-export.py",
+      "sha256": "d7f20266dc16e581b97a0540df5955d0bba31e81f6e47da0ee8febb54e8ffc9a"
+    },
+    {
       "path": "tools/backup.mjs",
       "sha256": "351be985062b4c4afc5ad8d1a5f710fc4166292fdf26dac255a263489b41159b"
     },
@@ -96,71 +172,11 @@
     },
     {
       "path": "tools/package-release.mjs",
-      "sha256": "b4e2041824224a2f1bcc4621a5ab5ebe639cfe0ccd0688148768789b640dc2be"
+      "sha256": "ff5df2787387d4a99a652d8acf6dd5d35909f6a0a713e070e67f57afe1407e05"
     },
     {
       "path": "tools/setup.mjs",
-      "sha256": "bd1e11ba232c71b65c9f981303ab1820c82c767e0a552c3a88597d193808161f"
-    },
-    {
-      "path": "test/export-completeness.test.mjs",
-      "sha256": "79e84cf88f2d174bc8094ea7535d22e4b6ca3a7ef29f27ffd0c9dd88455ab833"
-    },
-    {
-      "path": "test/server.test.mjs",
-      "sha256": "2cd86f3be4a5009b746499ebbeccbe951ba3ee1dec4905bf6b2f5be1ae07ae8b"
-    },
-    {
-      "path": "test/verify-export.py",
-      "sha256": "d7f20266dc16e581b97a0540df5955d0bba31e81f6e47da0ee8febb54e8ffc9a"
-    },
-    {
-      "path": "deploy/nginx-heyat-location.conf",
-      "sha256": "d639239dc419499c6388eab9a89375f4428e7471aae07c4e827c0e2fe96c2ac9"
-    },
-    {
-      "path": "server.mjs",
-      "sha256": "cff794ecd9801eb49ad0ff62de868f9e69542913bbcf7fc9187f415b82f1a0c6"
-    },
-    {
-      "path": "package.json",
-      "sha256": "1578a4649b60e67cf1dc957ae0b4f157f11ee13737c718e2e756bab3471a3c5e"
-    },
-    {
-      "path": ".gitignore",
-      "sha256": "99c91144d20e43b361fe903e16b32766c97288e0ace5eeac53d06faf03601ac1"
-    },
-    {
-      "path": ".env.example",
-      "sha256": "2095b8c46fc42df06a2b8355535961235a87b14c20849dbf8dc9f12b378bcc13"
-    },
-    {
-      "path": ".dockerignore",
-      "sha256": "f84a3ca7b3b36ea4a819fd825a3ba7af0d8f1b39fb99a1867e000b5f3964a086"
-    },
-    {
-      "path": "Dockerfile",
-      "sha256": "21ff4957d0c90828e3ffc5b81284469a2b61c5ed56b504e18dad77d26592b7d9"
-    },
-    {
-      "path": "compose.yaml",
-      "sha256": "2e2d5dfac2075ac81536de6849253529fe14fb66c0b9b22a0fcafff15a6d6a39"
-    },
-    {
-      "path": "README.md",
-      "sha256": "06f2f7f5fa969b784ff7ba92cdf15fde359625a35e4ba1f4afc26ae1d275fd44"
-    },
-    {
-      "path": "HANDOFF.md",
-      "sha256": "2f9a1b5224b1e5466ac771cee525b9c073468b2a616147f8fe75918e29a45e27"
-    },
-    {
-      "path": "TESTING.md",
-      "sha256": "b044dad72176d7641f3e8e4d3bd0bf6fabd508a4e2a7a931b6cd6599d63ff150"
-    },
-    {
-      "path": "LOGO-NOTES.md",
-      "sha256": "b3a5fda10b384b2051ba503e2841224e6f76225ca33047fc0ec95bafc83c93f0"
+      "sha256": "1338b461db78c215c974bcd3c6c7c9710717f3a1a834b03aaeae9907b69b049a"
     }
   ]
 }
