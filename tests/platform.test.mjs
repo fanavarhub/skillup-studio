@@ -84,6 +84,12 @@ test('direct signup URL serves the registration application', async () => {
   assert.match(body, /اسکیل آپ/)
 })
 
+test('comment login URL serves the application without indexing the login screen', async () => {
+  const { response, body } = await request('/login?returnTo=%2Fmagazine%2Fscratch-costume-animation%23comments')
+  assert.equal(response.status, 200)
+  assert.match(body, /<div id="root"><\/div>/)
+})
+
 test('Scratch download article has a crawlable SEO shell', async () => {
   const { response, body } = await request('/magazine/download-scratch')
   assert.equal(response.status, 200)
@@ -415,7 +421,7 @@ test('user CSV contains requested learning fields without password hashes', asyn
   assert.doesNotMatch(report.body, /[a-f0-9]{24}:[a-f0-9]{64}/)
 })
 
-test('the magazine serves the Scratch costume lesson and queues comments for review', async () => {
+test('magazine comments publish immediately with login, five reply levels, article scope and admin pins', async () => {
   const lesson = '/magazine/scratch-costume-animation'
   const { response, body } = await request(lesson)
   assert.equal(response.status, 200)
@@ -426,14 +432,68 @@ test('the magazine serves the Scratch costume lesson and queues comments for rev
   assert.equal((await request(lesson + '/assets/animation-blocks-approved.png')).response.headers.get('content-type'), 'image/png')
   assert.ok((await request('/sitemap.xml')).body.includes('https://skill-up.ir' + lesson))
 
-  const submitted = await request(lesson + '/comments', {
-    method: 'POST',
-    headers: { Origin: base, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'هنرجو', body: 'تمرین تغییر لباس را انجام دادم.' }),
-  })
-  assert.equal(submitted.response.status, 201)
-  assert.deepEqual((await request(lesson + '/comments')).body.comments, [])
-  const moderation = await request(lesson + '/moderation')
-  assert.equal(moderation.response.status, 200)
-  assert.match(moderation.response.headers.get('x-robots-tag'), /noindex/)
+  const endpoint = '/api/magazine/scratch-costume-animation/comments'
+  assert.equal((await request(endpoint, { method: 'POST', ...auth('', { body: 'یک دیدگاه' }) })).response.status, 401)
+  assert.equal((await request(lesson + '/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'مهمان', body: 'ورود را دور بزن' }) })).response.status, 410)
+  const newStudent = await request('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'آرین', phone: '09123334455', password: 'test-pass-1234' }) })
+  assert.equal(newStudent.response.status, 201)
+  const student = newStudent.body.token
+  const adminLogin = await request('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'test-admin', password: 'Automated-Test-Admin-Password' }) })
+  assert.equal(adminLogin.response.status, 200)
+  const admin = adminLogin.body.token
+  const registry = await request('/api/magazine/articles', auth(admin))
+  assert.ok(registry.body.some(item => item.slug === 'scratch-costume-animation'))
+  assert.ok(registry.body.some(item => item.slug === 'download-scratch'))
+  assert.equal((await request('/api/magazine/articles', auth(student))).response.status, 401)
+  assert.equal((await request('/api/magazine/scratch-costume-animation/session', auth(student))).body.name, 'آرین')
+  const create = (route, body, token = student) => request(route, { method: 'POST', ...auth(token, body) })
+  const root = await create(endpoint, { body: '<b>تمرین تغییر لباس را انجام دادم.</b>', name: 'مدیر جعلی', pin: 'diamond' })
+  assert.equal(root.response.status, 201)
+  assert.equal(root.body.comment.name, 'آرین')
+  assert.equal(root.body.comment.pin, 'none')
+  const rootId = root.body.comment.id
+  assert.equal((await request(endpoint)).body.comments[0].id, rootId)
+  assert.equal((await create('/api/magazine/download-scratch/comments', { body: 'پاسخ اشتباه', parentId: rootId })).response.status, 400)
+  let parentId = rootId
+  for (let depth = 1; depth <= 5; depth++) {
+    const reply = await create(endpoint, { body: `پاسخ لایهٔ ${depth}`, parentId })
+    assert.equal(reply.response.status, 201)
+    assert.equal(reply.body.comment.depth, depth)
+    parentId = reply.body.comment.id
+  }
+  assert.equal((await create(endpoint, { body: 'لایهٔ اضافه', parentId })).response.status, 400)
+  const replies = await request(`${endpoint}/${rootId}/replies`)
+  assert.equal(replies.body.comments.length, 5)
+  assert.equal((await request(`/api/admin/magazine/scratch-costume-animation/comments/${rootId}/pin`, { method: 'PATCH', ...auth(student, { pin: 'diamond' }) })).response.status, 401)
+  const pin = (id, kind, article = 'scratch-costume-animation') => request(`/api/admin/magazine/${article}/comments/${id}/pin`, { method: 'PATCH', ...auth(admin, { pin: kind }) })
+  assert.equal((await pin(rootId, 'diamond')).response.status, 200)
+  const gold = []
+  for (let i = 0; i < 3; i++) {
+    const item = await create(endpoint, { body: `دیدگاه طلایی ${i}` }, admin)
+    gold.push(item.body.comment.id)
+    assert.equal((await pin(item.body.comment.id, 'gold')).response.status, 200)
+  }
+  const extra = await create(endpoint, { body: 'پین طلایی اضافه' }, admin)
+  assert.equal((await pin(extra.body.comment.id, 'gold')).response.status, 409)
+  const secondDiamond = await create(endpoint, { body: 'پین الماسی جدید' }, admin)
+  assert.equal((await pin(secondDiamond.body.comment.id, 'diamond')).response.status, 200)
+  const pinned = (await request(endpoint)).body.pins
+  assert.equal(pinned.filter(item => item.pin === 'diamond').length, 1)
+  assert.equal(pinned.filter(item => item.pin === 'gold').length, 3)
+  assert.equal((await pin(parentId, 'gold')).response.status, 400)
+  const deleteReply = await request(`/api/admin/magazine/scratch-costume-animation/comments/${replies.body.comments[0].id}`, { method: 'DELETE', ...auth(admin) })
+  assert.equal(deleteReply.response.status, 200)
+  const afterDelete = await request(`${endpoint}/${rootId}/replies`)
+  assert.equal(afterDelete.body.comments[0].deleted, true)
+  assert.equal(afterDelete.body.comments[0].body, '')
+  assert.equal(afterDelete.body.comments[1].body, 'پاسخ لایهٔ 2')
+  const downloadRoot = await create('/api/magazine/download-scratch/comments', { body: 'دیدگاه مقالهٔ دانلود' })
+  assert.equal(downloadRoot.response.status, 201)
+  assert.equal((await request('/api/magazine/download-scratch/comments')).body.comments.length, 1)
+  assert.equal((await request(endpoint)).body.comments.some(item => item.id === downloadRoot.body.comment.id), false)
+  assert.equal((await pin(downloadRoot.body.comment.id, 'diamond', 'download-scratch')).response.status, 200)
+  assert.equal((await request('/api/magazine/download-scratch/comments')).body.pins.filter(item => item.pin === 'diamond').length, 1)
+  assert.equal((await request(endpoint)).body.pins.filter(item => item.pin === 'diamond').length, 1)
+  assert.equal((await request(`/api/admin/magazine/scratch-costume-animation/comments/${secondDiamond.body.comment.id}`, { method: 'DELETE', ...auth(admin) })).response.status, 200)
+  assert.equal((await request(endpoint)).body.pins.filter(item => item.pin === 'diamond').length, 0)
 })

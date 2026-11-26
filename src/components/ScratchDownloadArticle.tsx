@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { motion } from 'motion/react';
+import MagazineComments from './MagazineComments';
 import {
   ArrowLeft, BookOpen, Cat, CheckCircle2, Chrome, CircleHelp, CloudDownload,
   ExternalLink, Gamepad2, Laptop, MonitorDown, Play, Rocket, ShieldCheck,
@@ -183,6 +184,7 @@ export default function ScratchDownloadArticle({ navigate }: { navigate: (tab: s
     </section>
 
     <section className="px-4 py-14 sm:px-6 lg:px-8"><div className="mx-auto max-w-5xl overflow-hidden rounded-[34px] bg-gradient-to-l from-violet-700 via-indigo-600 to-sky-500 p-7 text-center text-white shadow-2xl shadow-violet-200 sm:p-12"><Rocket className="mx-auto h-11 w-11 text-amber-300"/><h2 className="mt-4 text-2xl font-black sm:text-4xl">آماده‌ای اولین پروژه‌ات را بسازی؟</h2><p className="mx-auto mt-4 max-w-2xl text-sm leading-8 text-violet-50">در دوره رایگان اسکرچ اسکیل‌آپ، قدم‌به‌قدم همراهت هستیم تا از نصب برنامه به ساخت یک پروژه واقعی برسی.</p><button onClick={() => navigate('signup')} className="mt-6 inline-flex min-h-13 items-center gap-2 rounded-2xl bg-white px-6 text-sm font-black text-violet-700 shadow-lg transition hover:-translate-y-1">ثبت‌نام در دوره رایگان<ArrowLeft className="h-4 w-4"/></button></div></section>
+    <MagazineComments slug="download-scratch" />
   </article>;
 }
 

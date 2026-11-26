@@ -153,9 +153,8 @@ if [[ ! -e .env ]]; then
   {
     printf "APP_URL='https://%s'\nPUBLIC_BASE_URL='https://%s'\n" "$canonical" "$canonical"
     printf "SKILLUP_ADMIN_USERNAME='%s'\nSKILLUP_ADMIN_PASSWORD='%s'\n" "$admin" "$admin_password"
-    printf "SKILLUP_SESSION_SECRET='%s'\nSCRATCH_LESSON_ADMIN_TOKEN='%s'\n" "$(openssl rand -hex 32)" "$(openssl rand -hex 32)"
+    printf "SKILLUP_SESSION_SECRET='%s'\n" "$(openssl rand -hex 32)"
     printf "FREE_SCRATCH_COURSE_ID='%s'\nGA_MEASUREMENT_ID='%s'\nGOOGLE_SITE_VERIFICATION='%s'\n" "$course" "$ga" "$verification"
-    printf "SCRATCH_LESSON_TRUST_PROXY='1'\n"
   } >"$env_tmp"
   if [[ -n ${SUDO_UID:-} && -n ${SUDO_GID:-} ]]; then chown "$SUDO_UID:$SUDO_GID" "$env_tmp"; fi
   ln -- "$env_tmp" .env || die '.env appeared during setup. Re-run to use it.'
@@ -168,7 +167,7 @@ else
   log 'Keeping the existing .env and credentials'
 fi
 unset APP_URL PUBLIC_BASE_URL SKILLUP_ADMIN_USERNAME SKILLUP_ADMIN_PASSWORD SKILLUP_SESSION_SECRET \
-  SCRATCH_LESSON_ADMIN_TOKEN SCRATCH_LESSON_TRUST_PROXY FREE_SCRATCH_COURSE_ID \
+  FREE_SCRATCH_COURSE_ID \
   FREE_SCRATCH_REPLACED_COURSE_ID GA_MEASUREMENT_ID GOOGLE_SITE_VERIFICATION
 "${compose[@]}" config --quiet
 if [[ ! -e data ]]; then install -d -m 0750 -o 1000 -g 1000 data; fi

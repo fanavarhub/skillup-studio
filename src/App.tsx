@@ -20,6 +20,7 @@ const authUserKey = 'skillup_auth_user';
 const tabFromPath = () => {
   const path = window.location.pathname.replace(/\/+$/, '') || '/';
   if (path === '/signup') return 'signup';
+  if (path === '/login') return 'login';
   if (path === '/magazine/download-scratch') return 'scratch-download';
   if (path === '/magazine') return 'articles';
   if (path.startsWith('/magazine/')) return `article:${decodeURIComponent(path.slice('/magazine/'.length))}`;
@@ -33,6 +34,7 @@ const tabFromPath = () => {
 
 const pathForTab = (tab: string) => {
   if (tab === 'signup') return '/signup';
+  if (tab === 'login') return '/login';
   if (tab === 'scratch-download') return '/magazine/download-scratch';
   if (tab === 'articles') return '/magazine';
   if (tab === 'courses') return '/courses';
@@ -91,6 +93,7 @@ export default function App() {
   useEffect(() => {
     const pages: Record<string, { title: string; description: string; index: boolean }> = {
       home: { title: 'اسکیل آپ | آموزش برنامه‌نویسی و هوش مصنوعی نوجوانان', description: 'آموزش پروژه‌محور برنامه‌نویسی، اسکرچ، هوش مصنوعی و مهارت‌های دیجیتال برای کودکان و نوجوانان همراه با مربی و پروژه واقعی.', index: true },
+      login: { title: 'ورود به اسکیل‌آپ', description: 'ورود به حساب اسکیل‌آپ برای شرکت در گفت‌وگوهای مقاله‌ها.', index: false },
       courses: { title: 'دوره‌های برنامه‌نویسی کودکان و نوجوانان | اسکیل آپ', description: 'دوره‌های پروژه‌محور اسکرچ، برنامه‌نویسی، هوش مصنوعی و مهارت‌های دیجیتال اسکیل آپ را مقایسه و مسیر مناسب را انتخاب کنید.', index: true },
       projects: { title: 'پروژه‌های برنامه‌نویسی نوجوانان | اسکیل آپ', description: 'نمونه پروژه‌های واقعی هنرجویان اسکیل آپ در بازی‌سازی، اسکرچ، هوش مصنوعی و تولید محتوای دیجیتال را ببینید.', index: true },
       signup: { title: 'ثبت‌نام رایگان دوره مقدماتی اسکرچ | اسکیل آپ', description: 'فرم ثبت‌نام رایگان دوره مقدماتی اسکرچ برای کودکان و نوجوانان؛ اطلاعات را تکمیل کنید تا حساب و دسترسی دوره برایتان فعال شود.', index: true },
@@ -146,6 +149,7 @@ export default function App() {
             {/* 6. Footer is appended automatically */}
           </div>
         )}
+        {currentTab === 'login' && <div className="mx-auto grid min-h-[50vh] max-w-xl place-items-center px-4 text-center" dir="rtl"><div><h1 className="text-3xl font-black">ورود به اسکیل‌آپ</h1><p className="mt-3 leading-8 text-slate-600">وارد حسابت شو تا دیدگاهت را منتشر کنی و به گفت‌وگوها بپیوندی.</p></div></div>}
 
         {currentTab === 'courses' && (
           <CoursesList 

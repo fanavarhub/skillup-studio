@@ -8,9 +8,10 @@ import GuidedTour from './GuidedTour';
 import FreeRegistrationsManager from './FreeRegistrationsManager';
 import ClubAdmin from './ClubAdmin';
 import PasswordResetManager from './PasswordResetManager';
+import MagazineCommentsAdmin from './MagazineCommentsAdmin';
 
 const tokenKey = 'skillup_admin_token';
-type Tab = 'learning' | 'courses' | 'projects' | 'club' | 'messages' | 'registrations' | 'requests';
+type Tab = 'learning' | 'courses' | 'projects' | 'club' | 'messages' | 'magazine-comments' | 'registrations' | 'requests';
 
 export default function AdminPanel() {
   const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || '');
@@ -78,7 +79,7 @@ export default function AdminPanel() {
 
   if (!token) return <div className="min-h-[70vh] bg-slate-50 py-16" dir="rtl"><form onSubmit={login} className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-7 shadow-xl"><div className="mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-amber-100 text-amber-700"><ShieldCheck className="h-7 w-7" /></div><h1 className="text-2xl font-black text-slate-950">ورود مدیریت</h1><p className="mt-2 text-sm text-slate-500">نام کاربری و رمز امن مدیریت را وارد کنید.</p><input required value={username} onChange={(e) => setUsername(e.target.value)} className="input-admin mt-5 w-full" placeholder="نام کاربری مدیر" dir="ltr" /><input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="input-admin mt-3 w-full" placeholder="رمز مدیریت" />{error && <p className="mt-3 text-sm text-rose-600">{error}</p>}<button className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 p-3 text-sm font-bold text-white"><LogIn className="h-4 w-4" />ورود</button></form></div>;
 
-  const tabs: Array<{ id: Tab; label: string; icon: typeof BarChart3 }> = [{ id: 'learning', label: 'آموزش و کاربران', icon: BarChart3 }, { id: 'courses', label: 'دوره و جلسه', icon: BookOpen }, { id: 'projects', label: 'ارزیابی پروژه', icon: FolderKanban }, { id: 'club', label: 'باشگاه رفیق‌ها', icon: MessageCircleHeart }, { id: 'messages', label: 'نظرها و پیام‌ها', icon: MessageSquareText }, { id: 'registrations', label: 'ثبت‌نام رایگان', icon: UserPlus }, { id: 'requests', label: 'درخواست‌ها', icon: ClipboardList }];
+  const tabs: Array<{ id: Tab; label: string; icon: typeof BarChart3 }> = [{ id: 'learning', label: 'آموزش و کاربران', icon: BarChart3 }, { id: 'courses', label: 'دوره و جلسه', icon: BookOpen }, { id: 'projects', label: 'ارزیابی پروژه', icon: FolderKanban }, { id: 'club', label: 'باشگاه رفیق‌ها', icon: MessageCircleHeart }, { id: 'messages', label: 'نظرها و پیام‌ها', icon: MessageSquareText }, { id: 'magazine-comments', label: 'دیدگاه‌های مقاله‌ها', icon: MessageSquareText }, { id: 'registrations', label: 'ثبت‌نام رایگان', icon: UserPlus }, { id: 'requests', label: 'درخواست‌ها', icon: ClipboardList }];
   return <div className="relative min-h-[80vh] overflow-hidden bg-gradient-to-b from-violet-50 via-slate-50 to-sky-50 py-7" dir="rtl"><div className="pointer-events-none absolute -right-16 top-20 h-52 w-52 rounded-full bg-fuchsia-200/30 blur-3xl" /><div className="pointer-events-none absolute -left-16 bottom-20 h-64 w-64 rounded-full bg-cyan-200/30 blur-3xl" /><div className="relative mx-auto max-w-[1500px] px-4 sm:px-6">
     <header data-tour="admin-header" className="relative mb-5 flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-[32px] border-4 border-white bg-gradient-to-l from-slate-950 via-indigo-950 to-violet-900 p-6 text-white shadow-[0_18px_45px_rgba(49,46,129,.22)]"><div className="absolute -left-8 -top-12 h-32 w-32 rounded-full border-[18px] border-fuchsia-400/10" /><div><p className="text-xs font-bold text-amber-300">✦ مرکز کنترل اسکیل‌آپ</p><h1 className="mt-1 text-2xl font-black">پنل مدیریت</h1><p className="mt-1 text-sm text-indigo-200">دوره، آموزش، پیام و درخواست‌ها در یک نمای ساده</p></div><button onClick={load} className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold backdrop-blur hover:bg-white/20"><RefreshCw className="h-4 w-4" />به‌روزرسانی</button></header>
     <nav className="mb-5 flex gap-2 overflow-x-auto rounded-[22px] border-2 border-white bg-white/90 p-2 shadow-[0_10px_30px_rgba(99,102,241,.10)] backdrop-blur">{tabs.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => setTab(id)} className={`flex shrink-0 items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition ${tab === id ? 'bg-gradient-to-l from-indigo-700 to-violet-600 text-white shadow-lg shadow-violet-200' : 'text-slate-500 hover:bg-violet-50 hover:text-violet-700'}`}><Icon className="h-4 w-4" />{label}</button>)}</nav>
@@ -87,6 +88,7 @@ export default function AdminPanel() {
     {tab === 'courses' && <div data-tour="admin-courses"><CourseManager adminFetch={adminFetch} /></div>}
     {tab === 'club' && <ClubAdmin adminFetch={adminFetch} courses={courses} />}
     {tab === 'messages' && <div data-tour="admin-messages"><MessageManager adminFetch={adminFetch} /></div>}
+    {tab === 'magazine-comments' && <MagazineCommentsAdmin token={token} />}
     {tab === 'registrations' && <FreeRegistrationsManager registrations={registrations} adminFetch={adminFetch} reload={load} />}
     {tab === 'requests' && <div className="mb-6"><PasswordResetManager adminFetch={adminFetch} /></div>}
     {tab === 'projects' && <div data-tour="admin-projects" className="space-y-4"><div><h2 className="text-2xl font-black text-slate-950">ارزیابی پروژه‌ها 🧩</h2><p className="mt-1 text-sm text-slate-500">هر معیار ۲۰ امتیاز دارد. نتیجه می‌تواند تأیید یا نیازمند اصلاح باشد.</p></div>{projects.map((project) => {
