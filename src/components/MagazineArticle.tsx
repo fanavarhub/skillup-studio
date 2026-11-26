@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { ArrowRight, CalendarDays, Clock3, UserRound } from 'lucide-react';
 import { findMagazineArticle } from '../articleData';
+import MagazineComments from './MagazineComments';
 
 export default function MagazineArticle({ slug, navigate }: { slug: string; navigate: (tab: string) => void }) {
   const article = findMagazineArticle(slug);
@@ -17,5 +18,5 @@ export default function MagazineArticle({ slug, navigate }: { slug: string; navi
     <div className="mt-6 rounded-[32px] border-2 border-violet-100 bg-white p-6 text-[15px] leading-9 text-slate-700 sm:p-9"><p className="text-lg font-bold leading-9 text-slate-800">{article.intro}</p>{article.sections.map((section) => <section key={section.title} className="mt-9"><h2 className="text-2xl font-black text-slate-950">{section.title}</h2>{section.paragraphs.map((paragraph) => <p key={paragraph} className="mt-4">{paragraph}</p>)}{section.bullets && <ul className="mt-4 list-inside list-disc space-y-2 rounded-2xl bg-violet-50 p-5 text-violet-950">{section.bullets.map((item) => <li key={item}>{item}</li>)}</ul>}</section>)}</div>
     <section className="mt-6 rounded-[32px] border-2 border-sky-100 bg-white p-6 sm:p-8"><h2 className="text-2xl font-black text-slate-950">سؤالات متداول</h2><div className="mt-4 space-y-3">{article.faq.map((item) => <details key={item.question} className="group rounded-2xl bg-slate-50 p-4"><summary className="cursor-pointer list-none font-black text-slate-800">{item.question}<span className="float-left text-violet-600 group-open:rotate-45">＋</span></summary><p className="mt-3 text-sm leading-7 text-slate-600">{item.answer}</p></details>)}</div></section>
     <section className="mt-6 rounded-[32px] bg-gradient-to-l from-indigo-700 to-violet-600 p-7 text-white"><h2 className="text-2xl font-black">آماده‌ای یک مهارت را با پروژه واقعی شروع کنی؟</h2><p className="mt-2 text-sm leading-7 text-violet-100">دوره‌های اسکیل‌آپ را ببین و مسیر مناسب سن و علاقه‌ات را انتخاب کن.</p><button onClick={() => navigate('courses')} className="mt-4 rounded-2xl bg-white px-5 py-3 text-sm font-black text-violet-700">مشاهده دوره‌ها</button></section>
-  </article></main>;
+  </article><MagazineComments slug={article.slug} /></main>;
 }

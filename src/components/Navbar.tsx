@@ -73,6 +73,8 @@ export default function Navbar({ currentTab, setCurrentTab, userRole, setUserRol
     setAuthOpen(true);
   };
 
+  useEffect(() => { if (currentTab === 'login') openAuth(); }, [currentTab]);
+
   const handleLogout = () => {
     localStorage.removeItem(authUserKey);
     localStorage.removeItem(adminTokenKey);
@@ -112,7 +114,12 @@ export default function Navbar({ currentTab, setCurrentTab, userRole, setUserRol
       setCurrentUser(nextUser);
       setUserRole(user.role);
       setAuthOpen(false);
-      setCurrentTab(user.role === 'admin' ? 'admin' : 'dashboard');
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      if (currentTab === 'login' && returnTo && /^\/magazine\/[a-z0-9-]+#comments$/.test(returnTo)) {
+        window.location.assign(returnTo);
+      } else {
+        setCurrentTab(user.role === 'admin' ? 'admin' : 'dashboard');
+      }
     } catch {
       setAuthError('ارتباط با سرور برقرار نشد.');
     } finally {

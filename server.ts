@@ -11,6 +11,8 @@ import { mountPlatformRoutes } from './platform'
 import { mountLearningRoutes } from './learning'
 import { findMagazineArticle, magazineArticles } from './src/articleData'
 import { createLessonServer, lessonPath } from './features/scratch-costume/server.mjs'
+import { mountMagazineComments } from './magazine-comments'
+import { mountMagazineAnalytics } from './magazine-analytics'
 
 const app = express()
 const PORT = Number(process.env.PORT || 3000)
@@ -48,10 +50,18 @@ const lesson = createLessonServer({
   assetDir: path.resolve(path.dirname(process.argv[1]), isProduction ? '..' : '.', 'features', 'scratch-costume', 'public'),
   databasePath: path.join(dataDir, 'scratch-comments.sqlite'),
   publicOrigin: process.env.PUBLIC_BASE_URL || 'https://skill-up.ir',
-  adminToken: process.env.SCRATCH_LESSON_ADMIN_TOKEN || '',
-  trustProxy: process.env.SCRATCH_LESSON_TRUST_PROXY === '1',
+  adminToken: '',
+  trustProxy: false,
 })
 app.use((req, res, next) => {
+  if (req.path === lessonPath + '/comments') {
+    if (req.method === 'GET') return res.redirect(308, `/api/magazine/scratch-costume-animation/comments${req.url.includes('?') ? '?' + req.url.split('?')[1] : ''}`)
+    return res.status(410).json({ error: 'برای ثبت دیدگاه از بخش دیدگاه‌های همین مقاله استفاده کن.' })
+  }
+  if (req.path === lessonPath + '/moderation' || req.path.startsWith(lessonPath + '/moderation/')) {
+    if (req.method === 'GET') return res.redirect(302, '/admin')
+    return res.status(410).json({ error: 'مدیریت دیدگاه‌ها به پنل اصلی منتقل شده است.' })
+  }
   if (req.path === lessonPath || req.path.startsWith(lessonPath + '/')) {
     lesson.emit('request', req, res)
     return
@@ -172,6 +182,8 @@ db.exec(`
     updated_at TEXT NOT NULL
   );
 `)
+mountMagazineComments(app, db, path.join(dataDir, 'scratch-comments.sqlite'))
+mountMagazineAnalytics(app, db)
 
 function ensureColumn(table: string, column: string, definition: string) {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
@@ -473,7 +485,7 @@ app.post('/api/admin/login', authRateLimit, (req, res) => {
     res.status(401).json({ error: 'نام کاربری یا رمز مدیر اشتباه است.' })
     return
   }
-  res.json({ success: true, token: createAdminToken(), expiresInMs: sessionDurationMs })
+  res.json({ success: true, token: createAdminToken(), expiresInMs: sessionDurationMs, user: { id: 'admin', name: 'مدیر اسکیل آپ', phone: 'admin', role: 'admin' } })
 })
 
 app.post('/api/auth/register', authRateLimit, (req, res) => {
@@ -1110,6 +1122,7 @@ async function startServer() {
       { paths: ['/courses', '/courses/'], title: 'دوره‌های برنامه‌نویسی کودکان و نوجوانان | اسکیل آپ', description: 'دوره‌های پروژه‌محور اسکرچ، برنامه‌نویسی، هوش مصنوعی و مهارت‌های دیجیتال اسکیل آپ را مقایسه و مسیر مناسب را انتخاب کنید.', canonical: 'https://skill-up.ir/courses', schema: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'دوره‌های آموزشی اسکیل آپ', url: 'https://skill-up.ir/courses', inLanguage: 'fa-IR' } },
       { paths: ['/projects', '/projects/'], title: 'پروژه‌های برنامه‌نویسی نوجوانان | اسکیل آپ', description: 'نمونه پروژه‌های واقعی هنرجویان اسکیل آپ در بازی‌سازی، اسکرچ، هوش مصنوعی و تولید محتوای دیجیتال را ببینید.', canonical: 'https://skill-up.ir/projects', schema: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'پروژه‌های نوجوانان اسکیل آپ', url: 'https://skill-up.ir/projects', inLanguage: 'fa-IR' } },
       { paths: ['/signup', '/signup/'], title: 'ثبت‌نام رایگان دوره مقدماتی اسکرچ | اسکیل آپ', description: 'فرم ثبت‌نام رایگان دوره مقدماتی اسکرچ برای کودکان و نوجوانان؛ اطلاعات را تکمیل کنید تا حساب و دسترسی دوره برایتان فعال شود.', canonical: 'https://skill-up.ir/signup', schema: { '@context': 'https://schema.org', '@type': 'WebPage', name: 'ثبت‌نام رایگان دوره مقدماتی اسکرچ', url: 'https://skill-up.ir/signup', inLanguage: 'fa-IR' } },
+      { paths: ['/login', '/login/'], title: 'ورود به اسکیل‌آپ', description: 'ورود به حساب اسکیل‌آپ برای شرکت در گفت‌وگوهای مقاله‌ها.', canonical: 'https://skill-up.ir/login', robots: 'noindex, nofollow' },
       { paths: ['/magazine', '/magazine/'], title: 'مجله اسکیل آپ | آموزش برنامه‌نویسی و مهارت‌های دیجیتال نوجوانان', description: 'مقاله‌ها و راهنماهای کاربردی اسکیل آپ برای آموزش برنامه‌نویسی، اسکرچ، هوش مصنوعی و مهارت‌های دیجیتال کودکان و نوجوانان.', canonical: 'https://skill-up.ir/magazine', schema: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'مجله اسکیل آپ', url: 'https://skill-up.ir/magazine', inLanguage: 'fa-IR' } },
       { paths: ['/dashboard', '/dashboard/'], title: 'پنل هنرجو | اسکیل آپ', description: 'فضای شخصی یادگیری هنرجوی اسکیل آپ.', canonical: 'https://skill-up.ir/dashboard', robots: 'noindex, nofollow' },
       { paths: ['/admin', '/admin/'], title: 'پنل مدیریت | اسکیل آپ', description: 'مدیریت امن پلتفرم اسکیل آپ.', canonical: 'https://skill-up.ir/admin', robots: 'noindex, nofollow' },

@@ -19,8 +19,9 @@
   <meta property="og:image:height" content="720">
   <meta name="twitter:card" content="summary_large_image">
   <script type="application/ld+json">{{SCHEMA}}</script>
-  <link rel="stylesheet" href="/magazine/scratch-costume-animation/assets/lesson.css?v=7">
-  <script type="module" src="/magazine/scratch-costume-animation/assets/lesson.js?v=7"></script>
+  <link rel="stylesheet" href="/magazine/scratch-costume-animation/assets/lesson.css?v=8">
+  <script type="module" src="/magazine/scratch-costume-animation/assets/lesson.js?v=8"></script>
+  <script defer src="/magazine-analytics.js"></script>
 </head>
 <body>
   <svg class="icons" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -55,7 +56,7 @@
         <a href="https://skill-up.ir/projects">پروژه‌های نوجوانان</a>
         <a href="/magazine">مجله اسکیل‌آپ</a><a href="https://skill-up.ir/signup">ثبت‌نام</a>
       </nav>
-      <a class="site-account" href="https://skill-up.ir/"><span class="account-shield">🛡️</span><span>حساب کاربری<small>ورود به اسکیل آپ</small></span><span>⌄</span></a>
+      <a class="site-account" href="/login?returnTo=%2Fmagazine%2Fscratch-costume-animation%23comments"><span class="account-shield">🛡️</span><span>ورود به حساب</span></a>
       <details class="mobile-menu">
         <summary><svg aria-hidden="true"><use href="#i-menu"/></svg> منو</summary>
         <nav aria-label="منوی موبایل"><a href="https://skill-up.ir/">صفحه اصلی</a><a href="https://skill-up.ir/courses">دوره‌های آموزشی</a><a href="https://skill-up.ir/projects">پروژه‌های نوجوانان</a><a href="/magazine">مجله اسکیل‌آپ</a><a href="https://skill-up.ir/signup">ثبت‌نام</a></nav>
@@ -129,15 +130,14 @@
           <p>تمرینت چطور پیش رفت؟ از پروژه‌ات بگو یا سؤال‌هات رو بپرس.</p>
         </div>
         <div class="comment-layout">
-          <form class="comment-form" id="comment-form" method="post" action="/magazine/scratch-costume-animation/comments">
-            <label for="display-name">اسم یا لقب</label>
-            <input id="display-name" name="name" placeholder="مثلاً آرین" minlength="2" maxlength="40" required>
+          <form class="comment-form" id="comment-form" action="/api/magazine/scratch-costume-animation/comments" hidden>
+            <p id="comment-identity"></p>
             <label for="comment-body">دیدگاهت</label>
-            <textarea id="comment-body" name="body" placeholder="اینجا بنویس…" minlength="8" maxlength="800" required></textarea>
-            <div hidden><label for="website">این فیلد را خالی بگذار</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
-            <div class="comment-actions"><button type="submit" class="button primary"><svg><use href="#i-message"/></svg> ارسال برای بررسی</button></div>
+            <textarea id="comment-body" name="body" placeholder="ایده، نتیجهٔ تمرین یا سؤالت را اینجا بنویس…" minlength="2" maxlength="1200" required></textarea>
+            <div class="comment-actions"><button type="submit" class="button primary"><svg><use href="#i-message"/></svg> انتشار دیدگاه</button></div>
             <p id="comment-status" role="status"></p>
           </form>
+          <div class="comment-login" id="comment-login" hidden><strong>رفیق اسکیل‌آپی، برای نوشتن دیدگاه اول وارد حسابت شو ✨</strong><p>دوست داری وارد شوی و بعد همین‌جا نظرت را بنویسی؟</p><a class="button primary" href="/login?returnTo=%2Fmagazine%2Fscratch-costume-animation%23comments">بله، ورود به اسکیل‌آپ</a></div>
           <div class="comment-feed">
             <div class="progress-illustration" id="comment-empty">
               <div class="teen-progress">
