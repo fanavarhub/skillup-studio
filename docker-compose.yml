@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      SCRATCH_LESSON_ADMIN_TOKEN: ${SCRATCH_LESSON_ADMIN_TOKEN:-}
+      SCRATCH_LESSON_TRUST_PROXY: ${SCRATCH_LESSON_TRUST_PROXY:-0}
       PORT: 4050
       SKILLUP_ADMIN_USERNAME: ${SKILLUP_ADMIN_USERNAME:-admin}
       SKILLUP_ADMIN_PASSWORD: ${SKILLUP_ADMIN_PASSWORD:?Set SKILLUP_ADMIN_PASSWORD in .env before starting}
