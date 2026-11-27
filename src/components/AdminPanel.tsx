@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { BarChart3, BookOpen, CheckCircle2, ClipboardList, FolderKanban, LogIn, MessageCircleHeart, MessageSquareText, RefreshCw, ShieldCheck, UserPlus, XCircle } from 'lucide-react';
-import type { ConsultationRequest, Course, FreeCourseRegistration, PaymentRequest, StudentProject } from '../types';
+import type { AuthUser, ConsultationRequest, Course, FreeCourseRegistration, PaymentRequest, StudentProject } from '../types';
 import CourseManager from './CourseManager';
 import LearningAdmin from './LearningAdmin';
 import MessageManager from './MessageManager';
@@ -12,9 +12,10 @@ import MagazineCommentsAdmin from './MagazineCommentsAdmin';
 import MagazineAnalyticsAdmin from './MagazineAnalyticsAdmin';
 
 const tokenKey = 'skillup_admin_token';
+const authUserKey = 'skillup_auth_user';
 type Tab = 'learning' | 'courses' | 'projects' | 'club' | 'messages' | 'magazine-comments' | 'magazine-analytics' | 'registrations' | 'requests';
 
-export default function AdminPanel() {
+export default function AdminPanel({ onAuthenticated }: { onAuthenticated: (user: AuthUser | null) => void }) {
   const [token, setToken] = useState(() => localStorage.getItem(tokenKey) || '');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +33,7 @@ export default function AdminPanel() {
   const adminFetch = async (url: string, options: RequestInit = {}) => {
     const formData = options.body instanceof FormData;
     const response = await fetch(url, { ...options, headers: { Authorization: `Bearer ${token}`, ...(!formData && options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) } });
-    if (response.status === 401) { localStorage.removeItem(tokenKey); setToken(''); throw new Error('نشست مدیریت منقضی شد؛ دوباره وارد شوید.'); }
+    if (response.status === 401) { localStorage.removeItem(tokenKey); localStorage.removeItem(authUserKey); onAuthenticated(null); setToken(''); throw new Error('نشست مدیریت منقضی شد؛ دوباره وارد شوید.'); }
     return response;
   };
 
@@ -45,9 +46,30 @@ export default function AdminPanel() {
   };
   useEffect(() => { load(); }, [token]);
 
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    fetch('/api/admin/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) => {
+        if (!active) return;
+        if (!response.ok) {
+          localStorage.removeItem(tokenKey);
+          localStorage.removeItem(authUserKey);
+          onAuthenticated(null);
+          setToken('');
+          return;
+        }
+        const user: AuthUser = { id: 'admin', name: 'مدیر اسکیل آپ', phone: 'admin', role: 'admin', avatar: '🛡️' };
+        localStorage.setItem(authUserKey, JSON.stringify(user));
+        onAuthenticated(user);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [token, onAuthenticated]);
+
   const login = async (event: FormEvent) => {
     event.preventDefault(); setError('');
-    try { const response = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); localStorage.setItem(tokenKey, data.token); setToken(data.token); setUsername(''); setPassword(''); }
+    try { const response = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); localStorage.setItem(tokenKey, data.token); const user: AuthUser = { ...data.user, avatar: '🛡️' }; localStorage.setItem(authUserKey, JSON.stringify(user)); onAuthenticated(user); setToken(data.token); setUsername(''); setPassword(''); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'ورود انجام نشد.'); }
   };
 

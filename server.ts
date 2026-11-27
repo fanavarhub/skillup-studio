@@ -485,7 +485,7 @@ app.post('/api/admin/login', authRateLimit, (req, res) => {
     res.status(401).json({ error: 'نام کاربری یا رمز مدیر اشتباه است.' })
     return
   }
-  res.json({ success: true, token: createAdminToken(), expiresInMs: sessionDurationMs })
+  res.json({ success: true, token: createAdminToken(), expiresInMs: sessionDurationMs, user: { id: 'admin', name: 'مدیر اسکیل آپ', phone: 'admin', role: 'admin' } })
 })
 
 app.post('/api/auth/register', authRateLimit, (req, res) => {

@@ -193,7 +193,7 @@ export default function App() {
         )}
 
         {currentTab === 'admin' && (
-          <AdminPanel />
+          <AdminPanel onAuthenticated={setCurrentUser} />
         )}
       </main>
 
