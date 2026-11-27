@@ -5,8 +5,8 @@ import { readSession, requireAdminSession } from './auth'
 import { magazineArticles } from './src/articleData'
 
 export const MAX_COMMENT_DEPTH = 5
-const articles = [{ slug: 'scratch-costume-animation', title: 'ساخت انیمیشن در اسکرچ با کاستیوم' }, { slug: 'download-scratch', title: 'دانلود اسکرچ' }, ...magazineArticles.map(({ slug, title }) => ({ slug, title }))]
-const slugs = new Set(articles.map(item => item.slug))
+export const magazineArticleRegistry = [{ slug: 'scratch-costume-animation', title: 'ساخت انیمیشن در اسکرچ با کاستیوم' }, { slug: 'download-scratch', title: 'دانلود اسکرچ' }, ...magazineArticles.map(({ slug, title }) => ({ slug, title }))]
+const slugs = new Set(magazineArticleRegistry.map(item => item.slug))
 type Row = { id: number; article_slug: string; parent_id: number | null; root_id: number | null; depth: number; author_id: string | null; author_role: string; author_name: string; body: string; deleted_at: string | null; created_at: string; pin: string }
 
 export function mountMagazineComments(app: Express, db: DatabaseSync, legacyPath: string) {
@@ -55,7 +55,7 @@ export function mountMagazineComments(app: Express, db: DatabaseSync, legacyPath
   const validId = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value > 0
   const cursor = (value: unknown) => typeof value === 'string' && /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value)) ? Number(value) : null
 
-  app.get('/api/magazine/articles', requireAdminSession, (_req, res) => res.json(articles))
+  app.get('/api/magazine/articles', requireAdminSession, (_req, res) => res.json(magazineArticleRegistry))
   app.get('/api/magazine/:slug/session', (req, res) => {
     if (!validArticle(req, res)) return
     const session = readSession(req)

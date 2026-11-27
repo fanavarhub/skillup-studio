@@ -497,3 +497,36 @@ test('magazine comments publish immediately with login, five reply levels, artic
   assert.equal((await request(`/api/admin/magazine/scratch-costume-animation/comments/${secondDiamond.body.comment.id}`, { method: 'DELETE', ...auth(admin) })).response.status, 200)
   assert.equal((await request(endpoint)).body.pins.filter(item => item.pin === 'diamond').length, 0)
 })
+
+test('article analytics are scoped, anonymous, deduplicated and admin-only', async () => {
+  const page = await request('/magazine/scratch-costume-animation')
+  assert.match(page.body, /magazine-analytics\.js/)
+  assert.equal((await request('/magazine-analytics.js')).response.status, 200)
+  const visitRoute = '/api/magazine/scratch-costume-animation/visits'
+  assert.equal((await request('/api/magazine/unknown-article/visits', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).response.status, 404)
+  assert.equal((await request(visitRoute, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://other.example' }, body: '{}' })).response.status, 403)
+  const started = await request(visitRoute, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: '{}' })
+  assert.equal(started.response.status, 201)
+  assert.match(started.body.visitId, /^[0-9a-f-]{36}$/)
+  const update = `${visitRoute}/${started.body.visitId}`
+  const report = { seq: 1, activeSeconds: 3, maxScroll: 78, sections: [{ key: 's0', label: 'شروع مقاله', seconds: 2 }, { key: 's1', label: 'تمرین', seconds: 1 }] }
+  const send = (url, body) => request(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: JSON.stringify(body) })
+  assert.equal((await send(update, report)).response.status, 200)
+  assert.equal((await send(update, report)).response.status, 409)
+  assert.equal((await send(update, { ...report, seq: 2, sections: [{ key: 's0', label: 'دادهٔ نادرست', seconds: 4 }] })).response.status, 400)
+  assert.equal((await send(`/api/magazine/download-scratch/visits/${started.body.visitId}`, { ...report, seq: 2 })).response.status, 404)
+  assert.equal((await send(update, { ...report, seq: 2, activeSeconds: 1, maxScroll: 95, sections: [{ key: 's1', label: 'تمرین', seconds: 1 }] })).response.status, 200)
+  const adminRoute = '/api/admin/magazine/scratch-costume-animation/analytics?days=30'
+  assert.equal((await request(adminRoute)).response.status, 401)
+  const admin = await request('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'test-admin', password: 'Automated-Test-Admin-Password' }) })
+  const dashboard = await request(adminRoute, auth(admin.body.token))
+  assert.equal(dashboard.response.status, 200)
+  assert.equal(dashboard.body.summary.visits, 1)
+  assert.equal(dashboard.body.summary.activeSeconds, 4)
+  assert.equal(dashboard.body.summary.scroll75, 1)
+  assert.equal(dashboard.body.summary.scrollEnd, 1)
+  assert.equal(dashboard.body.sections.find(item => item.key === 's1').activeSeconds, 2)
+  assert.equal(JSON.stringify(dashboard.body).includes(started.body.visitId), false)
+  assert.equal((await request('/api/admin/magazine/download-scratch/analytics?days=30', auth(admin.body.token))).body.summary.visits, 0)
+  assert.equal((await request('/api/admin/magazine/scratch-costume-animation/analytics?days=365', auth(admin.body.token))).response.status, 400)
+})

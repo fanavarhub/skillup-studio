@@ -12,6 +12,7 @@ import { mountLearningRoutes } from './learning'
 import { findMagazineArticle, magazineArticles } from './src/articleData'
 import { createLessonServer, lessonPath } from './features/scratch-costume/server.mjs'
 import { mountMagazineComments } from './magazine-comments'
+import { mountMagazineAnalytics } from './magazine-analytics'
 
 const app = express()
 const PORT = Number(process.env.PORT || 3000)
@@ -182,6 +183,7 @@ db.exec(`
   );
 `)
 mountMagazineComments(app, db, path.join(dataDir, 'scratch-comments.sqlite'))
+mountMagazineAnalytics(app, db)
 
 function ensureColumn(table: string, column: string, definition: string) {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
